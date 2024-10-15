@@ -90,21 +90,52 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
 
 
 //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
-float CameraVsHeadToObjectAngle(RE::NiPoint3 objPoint) {
+//float CameraVsHeadToObjectAngle(RE::NiPoint3 objPoint) {
+//    const auto player = RE::PlayerCharacter::GetSingleton();
+//
+//    RE::NiPoint3 playerToObject = objPoint - (player->GetPosition() + RE::NiPoint3(0, 0, 120));
+//
+//    playerToObject /= playerToObject.Length();
+//
+//    RE::NiPoint3 camDir = CameraDirInternal();
+//
+//    float dot = playerToObject.Dot(camDir);
+//
+//    const float radToDeg = (float)57.2958;
+//
+//    return acos(dot) * radToDeg;
+//}
+
+float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
     const auto player = RE::PlayerCharacter::GetSingleton();
 
-    RE::NiPoint3 playerToObject = objPoint - (player->GetPosition() + RE::NiPoint3(0, 0, 120));
+    // Get the vector from the player to the object
+    RE::NiPoint3 playerToObject =
+        objPoint - (player->GetPosition() + RE::NiPoint3(0, 0, 120));  // Adding some height to match head level
 
+    // Normalize the vector
     playerToObject /= playerToObject.Length();
 
-    RE::NiPoint3 camDir = CameraDirInternal();
+    // Get the player's forward direction as a unit vector (based on player's yaw)
+    float playerYaw = player->data.angle.z;  // Get the player's yaw angle
+    RE::NiPoint3 playerForwardDir;
+    playerForwardDir.x = std::sin(playerYaw);
+    playerForwardDir.y = std::cos(playerYaw);
+    playerForwardDir.z = 0;  // We only care about the direction in the XY plane
 
-    float dot = playerToObject.Dot(camDir);
+    // Normalize the player's forward direction
+    playerForwardDir /= playerForwardDir.Length();
 
-    const float radToDeg = (float)57.2958;
+    // Calculate the dot product between the player's forward direction and the object direction
+    float dot = playerToObject.Dot(playerForwardDir);
 
+    // Convert radians to degrees
+    const float radToDeg = 57.2958f;
+
+    // Calculate the angle between the two vectors
     return acos(dot) * radToDeg;
 }
+
 
 
 
@@ -390,91 +421,183 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 }
 
 
-int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges) { 
-    
-    
+//int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges) { 
+//    
+//    
+//    const auto player = RE::PlayerCharacter::GetSingleton();
+//    const auto playerPos = player->GetPosition();
+//
+//    RE::NiPoint3 cameraDir = CameraDirInternal();
+//
+//    float cameraDirTotal = magnitudeXY(cameraDir.x, cameraDir.y);
+//    RE::NiPoint3 cameraDirFlat;
+//    cameraDirFlat.x = cameraDir.x / cameraDirTotal;
+//    cameraDirFlat.y = cameraDir.y / cameraDirTotal;
+//    cameraDirFlat.z = 0;
+//
+//    int selectedLedgeType = -1;
+//    RE::NiPoint3 ledgePoint;
+//
+//    if (enableLedges) {
+//        selectedLedgeType = LedgeCheck(ledgePoint, cameraDirFlat, 110, 250);
+//    }
+//
+//    if (selectedLedgeType == -1) {
+//
+//        if (enableVaulting) {
+//            selectedLedgeType = VaultCheck(ledgePoint, cameraDirFlat, 120, 10, 50, 100);
+//        }
+//
+//        if (selectedLedgeType == -1)
+//        {
+//            return -1;
+//        }
+//    }
+//
+//
+//    // if camera facing too far away from ledgepoint
+//    if (CameraVsHeadToObjectAngle(ledgePoint) > 80) {
+//        return -1;
+//    }
+//
+//
+//    // rotate to face camera
+//    float zAngle = atan2(cameraDirFlat.x, cameraDirFlat.y);
+//
+//
+//    //it seems we have to MoveTo first in order to get the references into the same cell
+//
+//    if (indicatorRef->GetParentCell() != player->GetParentCell())
+//    {
+//        indicatorRef->MoveTo(player->AsReference());
+//    }
+//
+//    indicatorRef->data.location = ledgePoint + RE::NiPoint3(0,0,5);
+//    indicatorRef->Update3DPosition(true);
+//
+//    indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
+//
+//    RE::TESObjectREFR *ledgeMarker;
+//
+//    float zAdjust;
+//    float toCameraAdjust;
+//
+//
+//    //pick a ledge type
+//
+//
+//    if (selectedLedgeType == 1) {
+//        ledgeMarker = medMarkerRef;
+//        zAdjust = -155;
+//        toCameraAdjust = -50;
+//    } 
+//    else if (selectedLedgeType == 2) {
+//        ledgeMarker = highMarkerRef;
+//        zAdjust = -200;
+//        toCameraAdjust = -50;
+//    }
+//    else {
+//        ledgeMarker = vaultMarkerRef;
+//        zAdjust = -60;
+//        toCameraAdjust = -80;
+//    }
+//
+//    // adjust the EVG marker for correct positioning
+//    RE::NiPoint3 adjustedPos;
+//    adjustedPos.x = ledgePoint.x + cameraDirFlat.x * toCameraAdjust;
+//    adjustedPos.y = ledgePoint.y + cameraDirFlat.y * toCameraAdjust;
+//    adjustedPos.z = ledgePoint.z + zAdjust;
+//
+//    if (ledgeMarker->GetParentCell() != player->GetParentCell()) {
+//        ledgeMarker->MoveTo(player->AsReference());
+//    }
+//
+//    ledgeMarker->SetPosition(adjustedPos);
+//
+//    ledgeMarker->data.angle = RE::NiPoint3(0, 0, zAngle);
+//    
+//
+//
+//    return selectedLedgeType;
+//
+//
+//}
+int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
+                  RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges,
+                  float backwardOffset = 20.0f) {
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
-    RE::NiPoint3 cameraDir = CameraDirInternal();
+    // Get the player's yaw (Z rotation) in radians
+    float playerYaw = player->data.angle.z;  // Player's yaw angle
 
-    float cameraDirTotal = magnitudeXY(cameraDir.x, cameraDir.y);
-    RE::NiPoint3 cameraDirFlat;
-    cameraDirFlat.x = cameraDir.x / cameraDirTotal;
-    cameraDirFlat.y = cameraDir.y / cameraDirTotal;
-    cameraDirFlat.z = 0;
+    // Convert yaw to forward direction vector using sine and cosine
+    RE::NiPoint3 playerForwardDir;
+    playerForwardDir.x = std::sin(playerYaw);
+    playerForwardDir.y = std::cos(playerYaw);
+    playerForwardDir.z = 0;  // Player's forward vector is on the XY plane
+
+    // Normalize the player's direction vector
+    float playerDirTotal = magnitudeXY(playerForwardDir.x, playerForwardDir.y);
+    RE::NiPoint3 playerDirFlat;
+    playerDirFlat.x = playerForwardDir.x / playerDirTotal;
+    playerDirFlat.y = playerForwardDir.y / playerDirTotal;
+    playerDirFlat.z = 0;
 
     int selectedLedgeType = -1;
     RE::NiPoint3 ledgePoint;
 
+    // Perform ledge check based on player direction
     if (enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, cameraDirFlat, 110, 250);
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 110, 250);
+    }
+
+    if (selectedLedgeType == -1 && enableVaulting) {
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 120, 10, 50, 100);
     }
 
     if (selectedLedgeType == -1) {
-
-        if (enableVaulting) {
-            selectedLedgeType = VaultCheck(ledgePoint, cameraDirFlat, 120, 10, 50, 100);
-        }
-
-        if (selectedLedgeType == -1)
-        {
-            return -1;
-        }
-    }
-
-
-    // if camera facing too far away from ledgepoint
-    if (CameraVsHeadToObjectAngle(ledgePoint) > 80) {
         return -1;
     }
 
+    // If player's direction is too far away from the ledge point
+    if (PlayerVsObjectAngle(ledgePoint) > 80) {
+        return -1;
+    }
 
-    // rotate to face camera
-    float zAngle = atan2(cameraDirFlat.x, cameraDirFlat.y);
+    // Rotate to face the player's forward direction
+    float zAngle = atan2(playerDirFlat.x, playerDirFlat.y);
 
-
-    //it seems we have to MoveTo first in order to get the references into the same cell
-
-    if (indicatorRef->GetParentCell() != player->GetParentCell())
-    {
+    // Move the indicator to the player position if needed
+    if (indicatorRef->GetParentCell() != player->GetParentCell()) {
         indicatorRef->MoveTo(player->AsReference());
     }
 
-    indicatorRef->data.location = ledgePoint + RE::NiPoint3(0,0,5);
+    // Position the indicator above the ledge point, with an offset backward
+    RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset;
+    indicatorRef->data.location = ledgePoint - backwardAdjustment + RE::NiPoint3(0, 0, 5);
     indicatorRef->Update3DPosition(true);
-
     indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
 
     RE::TESObjectREFR *ledgeMarker;
-
     float zAdjust;
-    float toCameraAdjust;
 
-
-    //pick a ledge type
-
-
+    // Select ledge type
     if (selectedLedgeType == 1) {
         ledgeMarker = medMarkerRef;
         zAdjust = -155;
-        toCameraAdjust = -50;
-    } 
-    else if (selectedLedgeType == 2) {
+    } else if (selectedLedgeType == 2) {
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
-        toCameraAdjust = -50;
-    }
-    else {
+    } else {
         ledgeMarker = vaultMarkerRef;
         zAdjust = -60;
-        toCameraAdjust = -80;
     }
 
-    // adjust the EVG marker for correct positioning
+    // Adjust the ledge marker for correct positioning, applying the backward offset
     RE::NiPoint3 adjustedPos;
-    adjustedPos.x = ledgePoint.x + cameraDirFlat.x * toCameraAdjust;
-    adjustedPos.y = ledgePoint.y + cameraDirFlat.y * toCameraAdjust;
+    adjustedPos.x = ledgePoint.x + playerDirFlat.x - backwardAdjustment.x;
+    adjustedPos.y = ledgePoint.y + playerDirFlat.y - backwardAdjustment.y;
     adjustedPos.z = ledgePoint.z + zAdjust;
 
     if (ledgeMarker->GetParentCell() != player->GetParentCell()) {
@@ -482,15 +605,12 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     }
 
     ledgeMarker->SetPosition(adjustedPos);
-
     ledgeMarker->data.angle = RE::NiPoint3(0, 0, zAngle);
-    
-
 
     return selectedLedgeType;
-
-
 }
+
+
 
 int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey, bool enableVaulting, bool enableLedges) {
     
