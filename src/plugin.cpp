@@ -255,7 +255,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     float playerHeight = 120;  // how much headroom is needed
     float minUpCheck = 100;    // how low can the roof be relative to the raycast starting point?
     float maxUpCheck = (maxLedgeHeight - startZOffset) + 20;  // how high do we even check for a roof?
-    float fwdCheck = 10; // how much each incremental forward check steps forward
+    float fwdCheck = 8; // how much each incremental forward check steps forward               // Default 10
     int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 12
     float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
 
@@ -358,7 +358,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         return -1;
     }
 
-    int downIterations = (int)std::floor(vaultLength / 5.0f);
+    int downIterations = (int)std::floor(vaultLength / 5.0f);       //Default 5.0f
 
     RE::NiPoint3 downRayDir(0, 0, -1);
 
@@ -452,11 +452,12 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 110, 250);
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 120, 250);    // defaults 110, 250 
     }
 
     if (selectedLedgeType == -1 && enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 120, 10, 35, 109); // Replaced min vault with 35 from 50, max vault with 109 from 100
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 120, 25, 30, 110);   // defaults 120 10 50 100
+        // Replaced max elevation increase with 30 from 10, min vault with 35 from 50, max vault with 109 from 100
     }
 
     if (selectedLedgeType == -1) {
@@ -478,7 +479,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Position the indicator above the ledge point, with an offset backward
     RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset;
-    indicatorRef->data.location = ledgePoint /*- backwardAdjustment */+ RE::NiPoint3(0, 0, 3);
+    indicatorRef->data.location = ledgePoint /*- backwardAdjustment */+ RE::NiPoint3(0, 0, 5);
     indicatorRef->Update3DPosition(true);
     indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
 
