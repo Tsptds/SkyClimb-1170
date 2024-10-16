@@ -59,19 +59,19 @@ std::string SayHello(RE::StaticFunctionTag *) {
 
 
 
-RE::NiPoint3 CameraDirInternal() {
-
-    const auto worldCamera = RE::Main::WorldRootCamera();
-
-    
-
-    RE::NiPoint3 output;
-    output.x = worldCamera->world.rotate.entry[0][0];
-    output.y = worldCamera->world.rotate.entry[1][0];
-    output.z = worldCamera->world.rotate.entry[2][0];
-
-    return output;
-}
+//RE::NiPoint3 CameraDirInternal() {
+//
+//    const auto worldCamera = RE::Main::WorldRootCamera();
+//
+//    
+//
+//    RE::NiPoint3 output;
+//    output.x = worldCamera->world.rotate.entry[0][0];
+//    output.y = worldCamera->world.rotate.entry[1][0];
+//    output.z = worldCamera->world.rotate.entry[2][0];
+//
+//    return output;
+//}
 
 float getSign(float x) {
     if (x < 0) return -1;
@@ -405,6 +405,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
 
+
         if (foundLandingHeight < -10) {
             return 4;
         }
@@ -524,7 +525,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 //}
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges,
-                  float backwardOffset = 20.0f) {
+                  float backwardOffset = 55.0f) {
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
@@ -575,7 +576,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Position the indicator above the ledge point, with an offset backward
     RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset;
-    indicatorRef->data.location = ledgePoint - backwardAdjustment + RE::NiPoint3(0, 0, 5);
+    indicatorRef->data.location = ledgePoint /*- backwardAdjustment */+ RE::NiPoint3(0, 0, 3);
     indicatorRef->Update3DPosition(true);
     indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
 
