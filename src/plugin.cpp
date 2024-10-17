@@ -330,6 +330,11 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     if (headroomRayDist < playerHeight - headroomBuffer) {
         return -1;
     }
+    
+    // Ledge grab new
+    if (!PlayerIsGrounded()) {
+        return 5;
+    }
 
     if (ledgePoint.z - playerPos.z < 175) {
         return 1;
@@ -423,9 +428,11 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 
 
-int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
+int GetLedgePoint(RE::TESObjectREFR *ledgeGrabMarkerRef, RE::TESObjectREFR *vaultMarkerRef,
+                  RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges,
                   float backwardOffset = 60.0f) {
+
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
@@ -493,6 +500,9 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     } else if (selectedLedgeType == 2) {
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
+    } else if (selectedLedgeType == 5) {    // New ledge grab
+        ledgeMarker = ledgeGrabMarkerRef;
+        zAdjust = -120;
     } else {
         ledgeMarker = vaultMarkerRef;
         zAdjust = -60;
@@ -617,13 +627,14 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 //
 // }
 
-int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey, bool enableVaulting, bool enableLedges) {
+int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *ledgeGrabMarkerRef, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey, bool enableVaulting, bool enableLedges) {
     
-    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+    if (/*PlayerIsGrounded() == false ||*/ PlayerIsInWater() == true) {
         return -1;
     }
 
-    int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges);
+    int foundLedgeType = GetLedgePoint(ledgeGrabMarkerRef, vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef,
+                                       enableVaulting, enableLedges);
 
     if (useJumpKey) {
         if (foundLedgeType >= 0) {

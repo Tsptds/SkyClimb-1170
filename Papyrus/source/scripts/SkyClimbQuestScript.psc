@@ -25,7 +25,8 @@ endFunction
 
 function Maintenance()
 
-	UpdateRefs(true)
+	;UpdateRefs(true)
+	UpdateRefs()
 
 	lastParkourPosX = 0
 	lastParkourPosY = 0
@@ -58,46 +59,61 @@ bool function ParkourActive()
 
 endFunction
 
-function UpdateRefs(bool forceUpdateLinks)
+;function UpdateRefs(bool forceUpdateLinks)
+function UpdateRefs()
 
-	bool updateLinks = false
-	
+	;bool updateLinks = false
+	; this function is always called with forceupdate, see no reason to have another bool, even parameter can be deleted
 	
 	if(vaultActivatorRef == none)
 		vaultActivatorRef = Game.GetPlayer().PlaceAtMe(vaultActivatorProp, 1, true, false)
-		updateLinks = true
+		;updateLinks = true
 	endIf
 	
 	if(vaultMarkerRef == none)
 		vaultMarkerRef = Game.GetPlayer().PlaceAtMe(vaultMarkerProp, 1, true, false)
-		updateLinks = true
+		;updateLinks = true
 	endif
 
 	if(medActivatorRef == none)
 		medActivatorRef = Game.GetPlayer().PlaceAtMe(medActivatorProp, 1, true, false)
-		updateLinks = true
+		;updateLinks = true
 	endIf
 	
 	if(medMarkerRef == none)
 		medMarkerRef = Game.GetPlayer().PlaceAtMe(medMarkerProp, 1, true, false)
-		updateLinks = true
+		;updateLinks = true
 	endif
 	
 	if(highActivatorRef == none)
 		highActivatorRef = Game.GetPlayer().PlaceAtMe(highActivatorProp, 1, true, false)
-		updateLinks = true
+		;updateLinks = true
 	endIf
 	
 	if(highMarkerRef == none)
 		highMarkerRef = Game.GetPlayer().PlaceAtMe(highMarkerProp, 1, true, false)
-		updateLinks = true
+		;updateLinks = true
+	endif
+
+	;New ledge catch marker
+	if(ledgeGrabActivatorRef == none)
+		ledgeGrabActivatorRef = Game.GetPlayer().PlaceAtMe(ledgeGrabActivatorProp, 1, true, false)
+		;updateLinks = true
+	endif
+
+	if(ledgeGrabMarkerRef == none)
+		ledgeGrabMarkerRef = Game.GetPlayer().PlaceAtMe(ledgeGrabMarkerProp, 1, true, false)
+		;updateLinks = true
 	endif
 	
-	if updateLinks || forceUpdateLinks
+	;if updateLinks || forceUpdateLinks
+		
 		PO3_SKSEFunctions.SetLinkedRef(vaultActivatorRef, vaultMarkerRef)
 		PO3_SKSEFunctions.SetLinkedRef(medActivatorRef, medMarkerRef)
 		PO3_SKSEFunctions.SetLinkedRef(highActivatorRef, highMarkerRef)
-	endIf
+		PO3_SKSEFunctions.SetLinkedRef(ledgeGrabActivatorRef, ledgeGrabMarkerRef)
+
+	;endIf
 
 	if(indicatorRef == none)
 		indicatorRef = Game.GetPlayer().PlaceAtMe(indicatorObject, 1, true, false)
@@ -117,13 +133,14 @@ Event OnUpdate()
 	endif
 
 
-	UpdateRefs(true)
+	;UpdateRefs(true)
+	UpdateRefs()
 	; couldParkourLastFrame = canParkour
 
 	; if climbStarted == false && ParkourActive()
 	if !climbStarted
 	
-		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges)
+		parkourType = SkyClimbPapyrus.UpdateParkourPoint(ledgeGrabMarkerRef, vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges)
 	
 		if parkourType >= 0
 			
@@ -143,6 +160,8 @@ Event OnUpdate()
 			vaultMarkerRef.Disable()
 			medMarkerRef.Disable()
 			highMarkerRef.Disable()
+
+			ledgeGrabMarkerRef.Disable()
 		endif
 	 endif
 
@@ -171,7 +190,15 @@ function KeepClimbing()
 	
 		climbStarted = true
 
-	
+		; New ledge grab
+		if parkourType == 5
+			ledgeGrabMarkerRef.Enable()
+			Utility.Wait(0.01)
+			ledgeGrabMarkerRef.Activate(playerRef)
+			Utility.Wait(0.05)
+			climbStarted = false
+		endif
+
 		if parkourType == 1
 			medMarkerRef.Enable()
 			Utility.Wait(0.01)
@@ -224,7 +251,6 @@ function KeepClimbing()
 			SkyClimbPapyrus.EndAnimationEarly(playerRef)
 			climbStarted = false
 		endif
-		;UpdateRefs(true)
 	endIf
 
 endfunction
@@ -236,12 +262,21 @@ ObjectReference Property highActivatorRef Auto Hidden
 ObjectReference Property medActivatorRef Auto Hidden
 ObjectReference Property vaultActivatorRef Auto Hidden
 
+ObjectReference Property ledgeGrabMarkerRef Auto Hidden
+ObjectReference Property ledgeGrabActivatorRef Auto Hidden
+
 Activator Property highActivatorProp Auto
 Activator Property medActivatorProp Auto
 Activator Property vaultActivatorProp Auto
+
+Activator Property ledgeGrabActivatorProp  Auto
+
 Furniture Property highMarkerProp Auto
 Furniture Property medMarkerProp Auto
 Furniture Property vaultMarkerProp Auto
+
+Furniture Property ledgeGrabMarkerProp  Auto  
+
 
 ObjectReference Property indicatorRef Auto Hidden
 MiscObject Property indicatorObject Auto
@@ -250,3 +285,7 @@ Bool Property EnableLedges Auto
 Bool Property EnableVaulting Auto
 Bool Property UseJumpKey Auto
 Int Property ClimbKey Auto
+
+  
+
+
