@@ -134,7 +134,7 @@ Event OnUpdate()
 	; if climbStarted == false && ParkourActive()
 	if !climbStarted
 	
-		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges, grabMarkerRef)
+		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges)
 	
 		if parkourType >= 0
 			
@@ -186,7 +186,6 @@ function KeepClimbing()
 		if parkourType == 5
 			grabMarkerRef.Enable()
 			Utility.Wait(0.01)
-			;SkyClimbPapyrus.GrabLedge(grabMarkerRef, grabActivatorRef)
 			grabActivatorRef.Activate(playerRef)
 			Utility.Wait(0.05)
 			;climbStarted = false
