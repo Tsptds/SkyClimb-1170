@@ -1,3 +1,4 @@
+#include "ActivateOverride.cpp"
 namespace logger = SKSE::log;
 
 void SetupLog() {
@@ -495,7 +496,6 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // ledge  grab
     if (selectedLedgeType == 5) {
-        logger::info("Should Grab Ledge");
         /*if (player->NotifyAnimationGraph("JumpLand")) {
             logger::info("Notified animation graph");
         }*/
@@ -702,6 +702,10 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface *a_s
     SKSE::Init(a_skse);
     logger::info("SkyClimb Papyrus Started!");
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
+
+    if (PlayerCanActivateFurniture::Install()) {
+        logger::info("Furniture Activate Override Installed");
+    }
 
     return true;
 }
