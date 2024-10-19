@@ -88,8 +88,7 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
     objectRef->NotifyAnimationGraph("IdleFurnitureExit");
 }
 
-
-//camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
+    //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
 //float CameraVsHeadToObjectAngle(RE::NiPoint3 objPoint) {
 //    const auto player = RE::PlayerCharacter::GetSingleton();
 //
@@ -330,6 +329,13 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     if (headroomRayDist < playerHeight - headroomBuffer) {
         return -1;
     }
+    
+    if ((playerPos.z - ledgePoint.z < 120 || ledgePoint.z - playerPos.z <120) && !PlayerIsGrounded()) {
+        return 5;
+    }
+    /*if (!PlayerIsGrounded()) {
+        return 5;
+    }*/
 
     if (ledgePoint.z - playerPos.z < 175) {
         return 1;
@@ -401,7 +407,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         
 
     }
-
+    
     if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
 
@@ -409,7 +415,8 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         /*if (foundLandingHeight < -10) {
             return 4;
         }*/
-
+        
+        
         return 3;
         
         
@@ -424,7 +431,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
-                  RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges,
+                  RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
                   float backwardOffset = 60.0f) {
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
@@ -486,8 +493,13 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     RE::TESObjectREFR *ledgeMarker;
     float zAdjust;
 
+    // ledge  grab
+    if (selectedLedgeType == 5) {
+        ledgeMarker = grabMarkerRef;
+        zAdjust = -30;
+    }
     // Select ledge type
-    if (selectedLedgeType == 1) {
+    else if (selectedLedgeType == 1) {
         ledgeMarker = medMarkerRef;
         zAdjust = -155;
     } else if (selectedLedgeType == 2) {
@@ -497,6 +509,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
         ledgeMarker = vaultMarkerRef;
         zAdjust = -60;
     }
+
 
     // Adjust the ledge marker for correct positioning, applying the backward offset
     RE::NiPoint3 adjustedPos;
@@ -617,14 +630,19 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 //
 // }
 
-int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey, bool enableVaulting, bool enableLedges) {
+int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef,
+                       RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey,
+                       bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
-    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+    /*if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+        return -1;
+    }*/
+    if (PlayerIsInWater() == true) {
         return -1;
     }
 
-    int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges);
-
+    int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
+    
     if (useJumpKey) {
         if (foundLedgeType >= 0) {
             ToggleJumpingInternal(false);
@@ -632,6 +650,18 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
             ToggleJumpingInternal(true);
         }
     }
+
+    if (!PlayerIsGrounded() && foundLedgeType != 5) {
+        return -1;
+    }
+
+    /*if (useJumpKey) {
+        if (foundLedgeType >= 0) {
+            ToggleJumpingInternal(false);
+        } else {
+            ToggleJumpingInternal(true);
+        }
+    }*/
 
     return foundLedgeType;
 }
@@ -646,7 +676,6 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 
     vm->RegisterFunction("UpdateParkourPoint", "SkyClimbPapyrus", UpdateParkourPoint);
 
-    
     return true; 
 }
 
