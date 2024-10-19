@@ -61,8 +61,17 @@ endFunction
 function UpdateRefs(bool forceUpdateLinks)
 
 	bool updateLinks = false
-	
-	
+	; Ledge Grab
+	if(grabMarkerRef == none)
+		grabMarkerRef = Game.GetPlayer().PlaceAtMe(grabMarkerProp, 1, true, false)
+		updateLinks = true
+	endIf
+
+	if(grabActivatorRef == none)
+		grabActivatorRef = Game.GetPlayer().PlaceAtMe(grabActivatorProp, 1, true, false)
+		updateLinks = true
+	endIf
+
 	if(vaultActivatorRef == none)
 		vaultActivatorRef = Game.GetPlayer().PlaceAtMe(vaultActivatorProp, 1, true, false)
 		updateLinks = true
@@ -97,6 +106,8 @@ function UpdateRefs(bool forceUpdateLinks)
 		PO3_SKSEFunctions.SetLinkedRef(vaultActivatorRef, vaultMarkerRef)
 		PO3_SKSEFunctions.SetLinkedRef(medActivatorRef, medMarkerRef)
 		PO3_SKSEFunctions.SetLinkedRef(highActivatorRef, highMarkerRef)
+		
+		PO3_SKSEFunctions.SetLinkedRef(grabActivatorRef, grabMarkerRef)
 	endIf
 
 	if(indicatorRef == none)
@@ -123,7 +134,7 @@ Event OnUpdate()
 	; if climbStarted == false && ParkourActive()
 	if !climbStarted
 	
-		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges)
+		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges, grabMarkerRef)
 	
 		if parkourType >= 0
 			
@@ -143,6 +154,7 @@ Event OnUpdate()
 			vaultMarkerRef.Disable()
 			medMarkerRef.Disable()
 			highMarkerRef.Disable()
+			grabMarkerRef.Disable()
 		endif
 	 endif
 
@@ -171,30 +183,36 @@ function KeepClimbing()
 	
 		climbStarted = true
 
-	
-		if parkourType == 1
+		if parkourType == 5
+			grabMarkerRef.Enable()
+			Utility.Wait(0.01)
+			;SkyClimbPapyrus.GrabLedge(grabMarkerRef, grabActivatorRef)
+			grabActivatorRef.Activate(playerRef)
+			Utility.Wait(0.05)
+			;climbStarted = false
+		elseif parkourType == 1
 			medMarkerRef.Enable()
 			Utility.Wait(0.01)
 			medActivatorRef.Activate(playerRef)
-			;Utility.Wait(0.05)
+			Utility.Wait(0.05)
 
-			Utility.Wait(2.2)
-			medMarkerRef.Disable()
-			SkyClimbPapyrus.EndAnimationEarly(playerRef)
+			;Utility.Wait(2.2)
+			;medMarkerRef.Disable()
+			;SkyClimbPapyrus.EndAnimationEarly(playerRef)
 
-			climbStarted = false
+			;climbStarted = false
 		
 		elseif parkourType == 2
 			highMarkerRef.Enable()
 			Utility.Wait(0.01)
 			highActivatorRef.Activate(playerRef)
-			;Utility.Wait(0.05)
+			Utility.Wait(0.05)
 			
-			Utility.Wait(2.7)
-			highMarkerRef.Disable()
-			SkyClimbPapyrus.EndAnimationEarly(playerRef)
+			;Utility.Wait(2.7)
+			;highMarkerRef.Disable()
+			;SkyClimbPapyrus.EndAnimationEarly(playerRef)
 
-			climbStarted = false
+			;climbStarted = false
 		
 		; elseif parkourType == 3
 		; 	vaultMarkerRef.Enable()
@@ -222,9 +240,17 @@ function KeepClimbing()
 			vaultMarkerRef.Disable()
 
 			SkyClimbPapyrus.EndAnimationEarly(playerRef)
-			climbStarted = false
+			;climbStarted = false
+
+		; elseif parkourType == 5
+		; 	grabMarkerRef.Enable()
+		; 	Utility.Wait(0.01)
+		; 	grabActivatorRef.Activate(playerRef)
+		; 	Utility.Wait(0.05)
+		; 	;climbStarted = false
 		endif
-		;UpdateRefs(true)
+
+		climbStarted = false
 	endIf
 
 endfunction
@@ -236,12 +262,18 @@ ObjectReference Property highActivatorRef Auto Hidden
 ObjectReference Property medActivatorRef Auto Hidden
 ObjectReference Property vaultActivatorRef Auto Hidden
 
+ObjectReference Property grabMarkerRef auto Hidden
+ObjectReference Property grabActivatorRef auto Hidden
+
 Activator Property highActivatorProp Auto
 Activator Property medActivatorProp Auto
 Activator Property vaultActivatorProp Auto
 Furniture Property highMarkerProp Auto
 Furniture Property medMarkerProp Auto
 Furniture Property vaultMarkerProp Auto
+
+Furniture Property grabMarkerProp auto
+Activator Property grabActivatorProp auto
 
 ObjectReference Property indicatorRef Auto Hidden
 MiscObject Property indicatorObject Auto
