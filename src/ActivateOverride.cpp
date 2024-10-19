@@ -8,7 +8,7 @@ bool PlayerCanActivateFurniture::Install() {
 
     auto& trampoline = SKSE::GetTrampoline();
     logger::info("Installing Furniture Activate Override");
-    func = WriteFunctionHook(17420, 11, &thunk);
+   // func = WriteFunctionHook(17420, 11, &thunk);
     REL::Relocation<std::uintptr_t> canActivateFurnitureTarget{RELOCATION_ID(17034, 17420)};  // Obtained from PO3 tweaks; SE 17034, AE 17420
     
 
