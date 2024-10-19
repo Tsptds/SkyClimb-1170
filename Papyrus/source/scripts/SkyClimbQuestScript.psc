@@ -134,7 +134,7 @@ Event OnUpdate()
 	; if climbStarted == false && ParkourActive()
 	if !climbStarted
 	
-		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges)
+		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges, grabMarkerRef)
 	
 		if parkourType >= 0
 			

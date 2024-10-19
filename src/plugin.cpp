@@ -496,11 +496,11 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     // ledge  grab
     if (selectedLedgeType == 5) {
         logger::info("Should Grab Ledge");
-        if (player->NotifyAnimationGraph("Land")) {
+        /*if (player->NotifyAnimationGraph("JumpLand")) {
             logger::info("Notified animation graph");
-        }
+        }*/
         ledgeMarker = grabMarkerRef;
-        zAdjust = -30;
+        zAdjust = -45;
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
