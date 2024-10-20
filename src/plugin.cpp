@@ -135,8 +135,10 @@ float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
     return acos(dot) * radToDeg;
 }
 
+// Global variable, hate doing this
+RE::COL_LAYER lastHitObject;
 
-
+void LastObjectHitType(RE::COL_LAYER obj) { lastHitObject = obj; }
 
 float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut, bool logLayer, RE::COL_LAYER layerMask) {
 
@@ -173,6 +175,8 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
             case RE::COL_LAYER::kProps:
             case RE::COL_LAYER::kClutter:
 
+                // update last hit collision object to check later
+                LastObjectHitType(static_cast<RE::COL_LAYER>(layerIndex));
                 // hit something useful!
                 return maxDist * pickData.rayOutput.hitFraction;
 
@@ -281,6 +285,8 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
     bool foundLedge = false;
 
+    float normalZ=0;
+
     // if nothing above, raycast forwards then down to find ledge
     // incrementally step forward to find closest ledge in front
     for (int i = 0; i < fwdCheckIterations; i++) {
@@ -301,7 +307,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
         ledgePoint = downRayStart + downRayDir * downRayDist;
 
-        float normalZ = normalOut.quad.m128_f32[2];
+        /*float*/ normalZ = normalOut.quad.m128_f32[2];
 
         // if found ledgePoint is too low/high, or the normal is too steep, or the ray hit oddly soon, skip and
         // increment forward again
@@ -329,19 +335,27 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     if (headroomRayDist < playerHeight - headroomBuffer) {
         return -1;
     }
-    
-    if ((playerPos.z - ledgePoint.z < 120 || ledgePoint.z - playerPos.z <120) && !PlayerIsGrounded()) {
+    float ledgePlayerDiff = ledgePoint.z - playerPos.z;
+    logger::info("Ledge - player {}", ledgePlayerDiff);
+    logger::info("Flatness {}\n\t\t", normalZ);
+    if (ledgePlayerDiff > 175) {
+        logger::info("Returned High Ledge");
+        return 2;
+    } else if (ledgePlayerDiff >= 130) {
+        logger::info("Returned Med Ledge");
+        return 1;
+        // Don't climb into terrain, don't climb when surface is too flat and don't climb if less than minLedgeHeight
+    } else if (normalZ < 0.91f && lastHitObject != RE::COL_LAYER::kTerrain) {
+        logger::info("Returned Grab Ledge");
+        
         return 5;
     }
-    /*if (!PlayerIsGrounded()) {
-        return 5;
-    }*/
-
-    if (ledgePoint.z - playerPos.z < 175) {
+    return -1;
+    /*if (ledgePoint.z - playerPos.z < 175) {
         return 1;
     } else {
         return 2;
-    }
+    }*/
 }
 
 int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLength, float maxElevationIncrease, float minVaultHeight, float maxVaultHeight) {
@@ -360,7 +374,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
     float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, false, RE::COL_LAYER::kLOS);
 
-    if (fwdRayDist < vaultLength) {
+    if (fwdRayDist < vaultLength && lastHitObject == RE::COL_LAYER::kTerrain) {
         return -1;
     }
 
@@ -388,8 +402,8 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
         if (hitHeight > maxVaultHeight) {
             return -1;
-        }
-        else if (hitHeight > minVaultHeight && hitHeight < maxVaultHeight) {
+
+        } else if (hitHeight > minVaultHeight && hitHeight < maxVaultHeight) {
             if (hitHeight >= foundVaultHeight) {
                 foundVaultHeight = hitHeight;
                 foundLanding = false;
@@ -407,8 +421,10 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         
 
     }
-    
-    if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
+    /*if (!foundLanding && playerPos.z - ledgePoint.z > 0) {
+        return 5;
+    }
+    else*/ if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
 
         // Always cut of animation for smoother vaults, removed 4 in papyrus and replaced with 3 too
@@ -459,11 +475,11 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 120, 250);    // defaults 110, 250 
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 80, 250);    // defaults 110, 250 
     }
 
     if (selectedLedgeType == -1 && enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 120, 25, 30, 110);   // defaults 120 10 50 100
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 85, 30, 115);   // defaults 120 10 50 100
         // Replaced max elevation increase with 30 from 10, min vault with 35 from 50, max vault with 109 from 100
     }
 
@@ -495,11 +511,9 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // ledge  grab
     if (selectedLedgeType == 5) {
-        /*if (player->NotifyAnimationGraph("JumpLand")) {
-            logger::info("Notified animation graph");
-        }*/
         ledgeMarker = grabMarkerRef;
-        zAdjust = -50;
+        zAdjust = -80;
+        backwardAdjustment = playerDirFlat *(backwardOffset-10);
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
@@ -508,6 +522,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     } else if (selectedLedgeType == 2) {
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
+        backwardAdjustment = playerDirFlat * (backwardOffset + 10);
     } else {
         ledgeMarker = vaultMarkerRef;
         zAdjust = -60;
@@ -638,15 +653,13 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
                        RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey,
                        bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
-    /*if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-        return -1;
-    }*/
-    if (PlayerIsInWater() == true) {
+    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
         return -1;
     }
 
     int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
     
+
     if (useJumpKey) {
         if (foundLedgeType >= 0) {
             ToggleJumpingInternal(false);
@@ -654,18 +667,6 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
             ToggleJumpingInternal(true);
         }
     }
-
-    if (!PlayerIsGrounded() && foundLedgeType != 5) {
-        return -1;
-    }
-
-    /*if (useJumpKey) {
-        if (foundLedgeType >= 0) {
-            ToggleJumpingInternal(false);
-        } else {
-            ToggleJumpingInternal(true);
-        }
-    }*/
 
     return foundLedgeType;
 }
