@@ -13,6 +13,7 @@
 namespace logger = SKSE::log;
 namespace WinAPI = SKSE::WinAPI;
 
+
 #ifdef SKYRIM_AE
     #define OFFSET(se, ae) ae
     #define OFFSET_3(se, ae, vr) ae

@@ -1,4 +1,3 @@
-#include "ActivateOverride.cpp"
 namespace logger = SKSE::log;
 
 void SetupLog() {
@@ -500,7 +499,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
             logger::info("Notified animation graph");
         }*/
         ledgeMarker = grabMarkerRef;
-        zAdjust = -45;
+        zAdjust = -50;
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
@@ -527,6 +526,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     ledgeMarker->SetPosition(adjustedPos);
     ledgeMarker->data.angle = RE::NiPoint3(0, 0, zAngle);
+    
 
     return selectedLedgeType;
 }
@@ -701,11 +701,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface *a_s
 
     SKSE::Init(a_skse);
     logger::info("SkyClimb Papyrus Started!");
-    SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
-
-    if (PlayerCanActivateFurniture::Install()) {
-        logger::info("Furniture Activate Override Installed");
-    }
+    SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);    
 
     return true;
 }
