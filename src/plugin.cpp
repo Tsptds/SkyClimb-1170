@@ -355,9 +355,9 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         RE::NiPoint3 forwardObstacleRayStart = ledgePoint + RE::NiPoint3(0, 0, headroomBuffer);
         RE::NiPoint3 forwardObstacleRayDir = checkDir;
         float forwardObstacleRayDist =
-            RayCast(forwardObstacleRayStart, forwardObstacleRayDir, 40.0f, normalOut, RE::COL_LAYER::kLOS);
+            RayCast(forwardObstacleRayStart, forwardObstacleRayDir, 10.0f, normalOut, RE::COL_LAYER::kLOS);
 
-        if (forwardObstacleRayDist < 40.0f && forwardObstacleRayDist > 0) {
+        if (forwardObstacleRayDist < 10.0f && forwardObstacleRayDist > 0) {
             // An object is too close in front of the ledge, cancel grab animation
             return -1;
         }
@@ -394,7 +394,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     }
 
     // Backward ray to check if an object is blocking behind the vaultable surface
-    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * fwdRayDist;  // Start the ray from the hit point
+    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * fwdRayDist + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with (a z offset)
     //RE::NiPoint3 backwardRayDir = checkDir;                              // Cast behind
 
     // Check for any object within a small distance behind the vaultable object
@@ -453,7 +453,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     else*/ if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
 
-        // Always cut of animation for smoother vaults, removed 4 in papyrus and replaced with 3 too
+        // Always cut off animation for smoother vaults, removed 4 in papyrus and replaced with 3 too
         /*if (foundLandingHeight < -10) {
             return 4;
         }*/
@@ -509,7 +509,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
         if (player->GetParentCell()->IsInteriorCell())
             return -1;
         else
-            selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 50, 35, 60);   // defaults 120 10 50 100    // old values 130, 85, 35, 115
+            selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 50, 30, 60);   // defaults 120 10 50 100    // old values 130, 85, 35, 115
         // Replaced max elevation increase with 30 from 10, min vault with 35 from 50, max vault with 109 from 100
     }
 
@@ -683,10 +683,10 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
                        RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey,
                        bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
-    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-        ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
-        return -1;
-    }
+    //if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+    //    //ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
+    //    return -1;
+    //}
 
     int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
     
@@ -698,7 +698,11 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
             ToggleJumpingInternal(true);
         }
     }
-
+    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+        // ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is
+        // disabled
+        return -1;
+    }
     return foundLedgeType;
 }
 
