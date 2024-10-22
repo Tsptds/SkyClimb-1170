@@ -684,7 +684,6 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
                        bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
     //if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-    //    //ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
     //    return -1;
     //}
 
@@ -699,8 +698,7 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
         }
     }
     if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-        // ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is
-        // disabled
+        // ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
         return -1;
     }
     return foundLedgeType;
