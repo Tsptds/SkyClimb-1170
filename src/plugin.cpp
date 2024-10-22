@@ -137,10 +137,13 @@ float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
 
 // Global variable, hate doing this
 RE::COL_LAYER lastHitObject;
+// switch for layer hit logs
+bool logLayer = false;
 
 void LastObjectHitType(RE::COL_LAYER obj) { lastHitObject = obj; }
 
-float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut, bool logLayer, RE::COL_LAYER layerMask) {
+
+float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut,/* bool logLayer,*/ RE::COL_LAYER layerMask) {
 
     RE::NiPoint3 rayEnd = rayStart + rayDir * maxDist;
 
@@ -164,7 +167,7 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
 
         uint32_t layerIndex = pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F;
 
-        if (logLayer) logger::info("layer hit: {}", layerIndex);
+        if (logLayer) logger::info("\nlayer hit: {}", layerIndex);
 
         //fail if hit a character
         switch (static_cast<RE::COL_LAYER>(layerIndex)) {
@@ -222,7 +225,7 @@ bool PlayerIsGrounded() {
 
     RE::NiPoint3 groundedRayDir(0, 0, -1);
 
-    float groundedRayDist = RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, false, RE::COL_LAYER::kLOS);
+    float groundedRayDist = RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
     if (groundedRayDist == groundedCheckDist || groundedRayDist == -1) {
         return false;
@@ -253,6 +256,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
+    //const auto playerInInterior = player->GetParentCell()->IsInteriorCell();
 
     float startZOffset = 100;  // how high to start the raycast above the feet of the player
     float playerHeight = 120;  // how much headroom is needed
@@ -272,7 +276,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
     RE::NiPoint3 upRayDir(0, 0, 1);
 
-    float upRayDist = RayCast(upRayStart, upRayDir, maxUpCheck, normalOut, false, RE::COL_LAYER::kLOS);
+    float upRayDist = RayCast(upRayStart, upRayDir, maxUpCheck, normalOut,/* false,*/ RE::COL_LAYER::kLOS);
 
     if (upRayDist < minUpCheck) {
         return -1;
@@ -292,7 +296,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     for (int i = 0; i < fwdCheckIterations; i++) {
         // raycast forward
 
-        float fwdRayDist = RayCast(fwdRayStart, checkDir, fwdCheck * (float)i, normalOut, false, RE::COL_LAYER::kLOS);
+        float fwdRayDist = RayCast(fwdRayStart, checkDir, fwdCheck * (float)i, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
         if (fwdRayDist < fwdCheck * (float)i) {
             continue;
@@ -303,7 +307,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         downRayStart = fwdRayStart + checkDir * fwdRayDist;
 
         float downRayDist =
-            RayCast(downRayStart, downRayDir, startZOffset + maxUpCheck, normalOut, false, RE::COL_LAYER::kLOS);
+            RayCast(downRayStart, downRayDir, startZOffset + maxUpCheck, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
         ledgePoint = downRayStart + downRayDir * downRayDist;
 
@@ -326,26 +330,37 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     }
 
     // make sure player can stand on top
-    float headroomBuffer = 10;
+    float headroomBuffer = 10; // default 10
 
     RE::NiPoint3 headroomRayStart = ledgePoint + upRayDir * headroomBuffer;
 
-    float headroomRayDist = RayCast(headroomRayStart, upRayDir, playerHeight - headroomBuffer, normalOut, false, RE::COL_LAYER::kLOS);
+    float headroomRayDist = RayCast(headroomRayStart, upRayDir, playerHeight - headroomBuffer, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
     if (headroomRayDist < playerHeight - headroomBuffer) {
         return -1;
     }
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
-    logger::info("Ledge - player {}", ledgePlayerDiff);
-    logger::info("Flatness {}\n\t\t", normalZ);
+    logger::info("**************\nLedge - player {}", ledgePlayerDiff);
+    logger::info("Flatness {}", normalZ);
     if (ledgePlayerDiff > 175) {
         logger::info("Returned High Ledge");
         return 2;
     } else if (ledgePlayerDiff >= 130) {
         logger::info("Returned Med Ledge");
         return 1;
-        // Don't climb into terrain, don't climb when surface is too flat and don't climb if less than minLedgeHeight
-    } else if (normalZ < 0.91f && lastHitObject != RE::COL_LAYER::kTerrain) {
+        // Don't climb into terrain, don't climb when surface is too flat and don't climb if less than minLedgeHeight, or if the player is in interior (stairs become a nightmare in interiors)
+    } else /*if (normalZ < 0.91f && lastHitObject != RE::COL_LAYER::kTerrain && !playerInInterior)*/ { // default normalZ 0.91f
+        
+        // Forward check to see if an object is blocking in front of the ledge
+        RE::NiPoint3 forwardObstacleRayStart = ledgePoint + RE::NiPoint3(0, 0, headroomBuffer);
+        RE::NiPoint3 forwardObstacleRayDir = checkDir;
+        float forwardObstacleRayDist =
+            RayCast(forwardObstacleRayStart, forwardObstacleRayDir, 40.0f, normalOut, RE::COL_LAYER::kLOS);
+
+        if (forwardObstacleRayDist < 40.0f && forwardObstacleRayDist > 0) {
+            // An object is too close in front of the ledge, cancel grab animation
+            return -1;
+        }
         logger::info("Returned Grab Ledge");
         
         return 5;
@@ -372,13 +387,24 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     fwdRayStart.y = playerPos.y;
     fwdRayStart.z = playerPos.z + headHeight;
 
-    float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, false, RE::COL_LAYER::kLOS);
+    float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
     if (fwdRayDist < vaultLength && lastHitObject == RE::COL_LAYER::kTerrain) {
         return -1;
     }
 
-    int downIterations = (int)std::floor(vaultLength / 5.0f);       //Default 5.0f
+    // Backward ray to check if an object is blocking behind the vaultable surface
+    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * fwdRayDist;  // Start the ray from the hit point
+    //RE::NiPoint3 backwardRayDir = checkDir;                              // Cast behind
+
+    // Check for any object within a small distance behind the vaultable object
+    float backwardRayDist = RayCast(backwardRayStart, checkDir, 50.0f, normalOut, RE::COL_LAYER::kLOS);
+    if (backwardRayDist < 50.0f && backwardRayDist > 0) {
+        // An object was found behind the vaultable surface, so cancel the vault
+        return -1;
+    }
+
+    int downIterations = /*(int)std::floor(vaultLength / 5.0f)*/ 24;       //Default 5.0f
 
     RE::NiPoint3 downRayDir(0, 0, -1);
 
@@ -396,7 +422,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         downRayStart.z = fwdRayStart.z;
 
 
-        float downRayDist = RayCast(downRayStart, downRayDir, headHeight + 100, normalOut, false, RE::COL_LAYER::kLOS);
+        float downRayDist = RayCast(downRayStart, downRayDir, headHeight + 100, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
         float hitHeight = (fwdRayStart.z - downRayDist) - playerPos.z;
 
@@ -448,7 +474,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
-                  float backwardOffset = 60.0f) {
+                  float backwardOffset = 55.0f) {
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
@@ -475,11 +501,15 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 80, 250);    // defaults 110, 250 
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 60, 250);    // defaults 110, 250 
     }
 
     if (selectedLedgeType == -1 && enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 85, 30, 115);   // defaults 120 10 50 100
+        // prevent vaulting over to clip out-of-bounds
+        if (player->GetParentCell()->IsInteriorCell())
+            return -1;
+        else
+            selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 50, 35, 60);   // defaults 120 10 50 100    // old values 130, 85, 35, 115
         // Replaced max elevation increase with 30 from 10, min vault with 35 from 50, max vault with 109 from 100
     }
 
@@ -512,8 +542,8 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     // ledge  grab
     if (selectedLedgeType == 5) {
         ledgeMarker = grabMarkerRef;
-        zAdjust = -80;
-        backwardAdjustment = playerDirFlat *(backwardOffset-10);
+        zAdjust = -60;
+        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 40;     // 50 is fine for this
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
@@ -522,10 +552,10 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     } else if (selectedLedgeType == 2) {
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
-        backwardAdjustment = playerDirFlat * (backwardOffset + 10);
+        backwardAdjustment = playerDirFlat * backwardOffset;
     } else {
         ledgeMarker = vaultMarkerRef;
-        zAdjust = -60;
+        zAdjust = -50;  // default -60
     }
 
 
@@ -654,6 +684,7 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
                        bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
     if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+        ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
         return -1;
     }
 
