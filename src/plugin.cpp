@@ -341,26 +341,25 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     }
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
     logger::info("**************\nLedge - player {}", ledgePlayerDiff);
-    logger::info("Flatness {}", normalZ);
+    //logger::info("Flatness {}", normalZ);
     if (ledgePlayerDiff > 175) {
         logger::info("Returned High Ledge");
         return 2;
-    } else if (ledgePlayerDiff >= 130) {
+    } else if (ledgePlayerDiff >= 120) {
         logger::info("Returned Med Ledge");
         return 1;
-        // Don't climb into terrain, don't climb when surface is too flat and don't climb if less than minLedgeHeight, or if the player is in interior (stairs become a nightmare in interiors)
-    } else /*if (normalZ < 0.91f && lastHitObject != RE::COL_LAYER::kTerrain && !playerInInterior)*/ { // default normalZ 0.91f
         
-        // Forward check to see if an object is blocking in front of the ledge
-        RE::NiPoint3 forwardObstacleRayStart = ledgePoint + RE::NiPoint3(0, 0, headroomBuffer);
-        RE::NiPoint3 forwardObstacleRayDir = checkDir;
-        float forwardObstacleRayDist =
-            RayCast(forwardObstacleRayStart, forwardObstacleRayDir, 10.0f, normalOut, RE::COL_LAYER::kLOS);
+    } else {
+        
+        // Calculate horizontal and vertical distances
+        float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
+        float verticalDistance = abs(ledgePoint.z - playerPos.z);
 
-        if (forwardObstacleRayDist < 10.0f && forwardObstacleRayDist > 0) {
-            // An object is too close in front of the ledge, cancel grab animation
-            return -1;
+        // Check if horizontal distance is more than half of the vertical distance
+        if (horizontalDistance > floor(verticalDistance / 3)) {
+            return -1;  // Cancel climb if too far horizontally
         }
+
         logger::info("Returned Grab Ledge");
         
         return 5;
@@ -458,7 +457,15 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
             return 4;
         }*/
         
-        
+        // Calculate horizontal and vertical distances
+        float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
+        float verticalDistance = abs(ledgePoint.z - playerPos.z);
+
+        // Check if horizontal distance is more than half of the vertical distance
+        if (horizontalDistance > floor(verticalDistance)) {
+            return -1;  // Cancel climb if too far horizontally
+        }
+
         return 3;
         
         
@@ -500,16 +507,18 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     RE::NiPoint3 ledgePoint;
 
     // Perform ledge check based on player direction
-    if (enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 60, 250);    // defaults 110, 250 
+    if (enableVaulting) {
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 30, 100);
+        //selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 60, 250);    // defaults 110, 250 
     }
 
-    if (selectedLedgeType == -1 && enableVaulting) {
-        // prevent vaulting over to clip out-of-bounds
-        if (player->GetParentCell()->IsInteriorCell())
-            return -1;
-        else
-            selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 50, 30, 60);   // defaults 120 10 50 100    // old values 130, 85, 35, 115
+    if (selectedLedgeType == -1 && enableLedges) {
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 30, 250);
+        //// prevent vaulting over to clip out-of-bounds
+        //if (player->GetParentCell()->IsInteriorCell())
+        //    return -1;
+        //else
+            //selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 50, 30, 60);   // defaults 120 10 50 100    // old values 130, 85, 35, 115
         // Replaced max elevation increase with 30 from 10, min vault with 35 from 50, max vault with 109 from 100
     }
 
