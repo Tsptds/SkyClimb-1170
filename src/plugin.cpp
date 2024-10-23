@@ -264,7 +264,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     float maxUpCheck = (maxLedgeHeight - startZOffset) + 20;  // how high do we even check for a roof?
     float fwdCheck = 8; // how much each incremental forward check steps forward               // Default 10
     int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 12
-    float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
+    float minLedgeFlatness = 0.7;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
 
     RE::hkVector4 normalOut(0, 0, 0, 0);
 
@@ -341,7 +341,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     }
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
     logger::info("**************\nLedge - player {}", ledgePlayerDiff);
-    //logger::info("Flatness {}", normalZ);
+    logger::info("Flatness {}", normalZ);
     if (ledgePlayerDiff > 175) {
         logger::info("Returned High Ledge");
         return 2;
@@ -354,9 +354,10 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         // Calculate horizontal and vertical distances
         float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
         float verticalDistance = abs(ledgePoint.z - playerPos.z);
-
+        logger::info("Horizontal distance: {} Vertical distance: {}", horizontalDistance, verticalDistance);
         // Check if horizontal distance is more than half of the vertical distance
-        if (horizontalDistance > floor(verticalDistance / 3)) {
+        if (horizontalDistance > floor(verticalDistance / 2)) {
+            logger::info("Too far horizontally");
             return -1;  // Cancel climb if too far horizontally
         }
 
@@ -508,7 +509,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 30, 100);
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 28, 90);
         //selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 60, 250);    // defaults 110, 250 
     }
 
@@ -528,6 +529,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // If player's direction is too far away from the ledge point
     if (PlayerVsObjectAngle(ledgePoint) > 80) {
+        logger::info("Player is too far away from ledge");
         return -1;
     }
 
@@ -547,12 +549,13 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     RE::TESObjectREFR *ledgeMarker;
     float zAdjust;
+    //zAdjust = ceil(playerPos.z - ledgePoint.z);
 
     // ledge  grab
     if (selectedLedgeType == 5) {
         ledgeMarker = grabMarkerRef;
-        zAdjust = -60;
-        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 40;     // 50 is fine for this
+        zAdjust = -80;
+        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50;     // 50 is fine for this
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
@@ -561,10 +564,9 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     } else if (selectedLedgeType == 2) {
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
-        backwardAdjustment = playerDirFlat * backwardOffset;
     } else {
         ledgeMarker = vaultMarkerRef;
-        zAdjust = -50;  // default -60
+        zAdjust = -60;  // default -60
     }
 
 
