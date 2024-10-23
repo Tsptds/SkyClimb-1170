@@ -264,7 +264,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     float maxUpCheck = (maxLedgeHeight - startZOffset) + 20;  // how high do we even check for a roof?
     float fwdCheck = 8; // how much each incremental forward check steps forward               // Default 10
     int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 12
-    float minLedgeFlatness = 0.7;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
+    float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
 
     RE::hkVector4 normalOut(0, 0, 0, 0);
 
@@ -356,7 +356,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         float verticalDistance = abs(ledgePoint.z - playerPos.z);
         logger::info("Horizontal distance: {} Vertical distance: {}", horizontalDistance, verticalDistance);
         // Check if horizontal distance is more than half of the vertical distance
-        if (horizontalDistance > floor(verticalDistance / 2)) {
+        if (horizontalDistance > floor(verticalDistance / 2)) { // this greatly prevents climbing into stairs while allowing low height grabs
             logger::info("Too far horizontally");
             return -1;  // Cancel climb if too far horizontally
         }
@@ -394,8 +394,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     }
 
     // Backward ray to check if an object is blocking behind the vaultable surface
-    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * fwdRayDist + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with (a z offset)
-    //RE::NiPoint3 backwardRayDir = checkDir;                              // Cast behind
+    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 5) + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with a z offset, and a starting offset
 
     // Check for any object within a small distance behind the vaultable object
     float backwardRayDist = RayCast(backwardRayStart, checkDir, 50.0f, normalOut, RE::COL_LAYER::kLOS);
