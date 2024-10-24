@@ -340,8 +340,10 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         return -1;
     }
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
-    logger::info("**************\nLedge - player {}", ledgePlayerDiff);
-    logger::info("Flatness {}", normalZ);
+
+    if (logLayer) logger::info("**************\nLedge - player {}", ledgePlayerDiff);
+    if (logLayer) logger::info("Flatness {}", normalZ);
+
     if (ledgePlayerDiff > 175) {
         logger::info("Returned High Ledge");
         return 2;
