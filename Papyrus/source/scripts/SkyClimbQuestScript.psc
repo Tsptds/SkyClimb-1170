@@ -12,6 +12,7 @@ int parkourType = -1
 float lastParkourPosX
 float lastParkourPosY
 float lastParkourPosZ
+Actor property playerRef auto
 
 function OnInit()
 
@@ -151,6 +152,7 @@ Event OnUpdate()
 			endif
 			
 			;keep em disabled
+			SkyClimbPapyrus.EndAnimationEarly(playerRef)
 			vaultMarkerRef.Disable()
 			medMarkerRef.Disable()
 			highMarkerRef.Disable()
@@ -177,7 +179,7 @@ EndEvent
 function KeepClimbing()
 	; if climbStarted == false && couldParkourLastFrame && canParkour && parkourType >= 0 && ParkourActive()		;Default couldParkourLastFrame
 	if climbStarted == false && canParkour
-		Actor playerRef = Game.GetPlayer()
+		;Actor playerRef = Game.GetPlayer()
 
 		;playerRef.SetAnimationVariableBool("bInJumpState", false)
 	
@@ -187,13 +189,13 @@ function KeepClimbing()
 			grabMarkerRef.Enable()
 			Utility.Wait(0.01)
 			grabActivatorRef.Activate(playerRef)
-			Utility.Wait(0.05)
+			Utility.Wait(1.5)
 			;climbStarted = false
 		elseif parkourType == 1
 			medMarkerRef.Enable()
 			Utility.Wait(0.01)
 			medActivatorRef.Activate(playerRef)
-			Utility.Wait(0.05)
+			Utility.Wait(1.5)
 
 			;Utility.Wait(2.2)
 			;medMarkerRef.Disable()
@@ -205,7 +207,7 @@ function KeepClimbing()
 			highMarkerRef.Enable()
 			Utility.Wait(0.01)
 			highActivatorRef.Activate(playerRef)
-			Utility.Wait(0.05)
+			Utility.Wait(2.0)
 			
 			;Utility.Wait(2.7)
 			;highMarkerRef.Disable()
