@@ -345,10 +345,10 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     if (logLayer) logger::info("Flatness {}", normalZ);
 
     if (ledgePlayerDiff > 175) {
-        logger::info("Returned High Ledge");
+        //logger::info("Returned High Ledge");
         return 2;
     } else if (ledgePlayerDiff >= 120) {
-        logger::info("Returned Med Ledge");
+        //logger::info("Returned Med Ledge");
         return 1;
         
     } else {
@@ -356,15 +356,15 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         // Calculate horizontal and vertical distances
         float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
         float verticalDistance = abs(ledgePoint.z - playerPos.z);
-        logger::info("Horizontal distance: {} Vertical distance: {}", horizontalDistance, verticalDistance);
+
         // Check if horizontal distance is more than half of the vertical distance
         if (horizontalDistance > floor(verticalDistance / 2)) { // this greatly prevents climbing into stairs while allowing low height grabs
-            logger::info("Too far horizontally");
+            logger::info("Ledge too far H:{} V:{}", horizontalDistance, verticalDistance);
             return -1;  // Cancel climb if too far horizontally
         }
 
-        logger::info("Returned Grab Ledge");
-        
+        //logger::info("Returned Grab Ledge");
+        logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
         return 5;
     }
     return -1;
@@ -396,7 +396,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     }
 
     // Backward ray to check if an object is blocking behind the vaultable surface
-    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 5) + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with a z offset, and a starting offset
+    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 2) + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with a z offset, and a starting offset
 
     // Check for any object within a small distance behind the vaultable object
     float backwardRayDist = RayCast(backwardRayStart, checkDir, 50.0f, normalOut, RE::COL_LAYER::kLOS);
@@ -405,7 +405,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         return -1;
     }
 
-    int downIterations = /*(int)std::floor(vaultLength / 5.0f)*/ 24;       //Default 5.0f
+    int downIterations = (int)std::floor(vaultLength / 5.0f) /*24*/;       //Default 5.0f
 
     RE::NiPoint3 downRayDir(0, 0, -1);
 
@@ -464,10 +464,11 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         float verticalDistance = abs(ledgePoint.z - playerPos.z);
 
         // Check if horizontal distance is more than half of the vertical distance
-        if (horizontalDistance > floor(verticalDistance)) {
+        if (horizontalDistance > floor(verticalDistance /** 3 / 4*/)) {
+            logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
             return -1;  // Cancel climb if too far horizontally
         }
-
+        logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
         return 3;
         
         
@@ -510,7 +511,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 28, 90);
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 40.5, 90);
         //selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 60, 250);    // defaults 110, 250 
     }
 
@@ -554,18 +555,22 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // ledge  grab
     if (selectedLedgeType == 5) {
+        logger::info("Selected Grab Ledge");
         ledgeMarker = grabMarkerRef;
         zAdjust = -80;
         backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50;     // 50 is fine for this
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
+        logger::info("Selected Med Ledge");
         ledgeMarker = medMarkerRef;
         zAdjust = -155;
     } else if (selectedLedgeType == 2) {
+        logger::info("Selected High Ledge");
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
     } else {
+        logger::info("Selected Vault");
         ledgeMarker = vaultMarkerRef;
         zAdjust = -60;  // default -60
     }
