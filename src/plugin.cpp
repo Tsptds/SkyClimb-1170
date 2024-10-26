@@ -85,7 +85,11 @@ void ToggleJumpingInternal(bool enabled) {
 void ToggleJumping(RE::StaticFunctionTag *, bool enabled) { ToggleJumpingInternal(enabled); }
 
 void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
-    objectRef->NotifyAnimationGraph("IdleFurnitureExit");
+   
+        if(!objectRef) logger::error("Null Player Ref Animation not ended early");
+        else
+            objectRef->NotifyAnimationGraph("IdleFurnitureExit");
+    
 }
 
     //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
