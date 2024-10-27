@@ -54,9 +54,9 @@ function Maintenance()
 endFunction
 
 bool function ParkourActive()
-
-	return Game.GetPlayer().GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
-
+	;return Game.GetPlayer().GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
+	return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
+	
 endFunction
 
 function UpdateRefs(bool forceUpdateLinks)
@@ -152,7 +152,9 @@ Event OnUpdate()
 			endif
 			
 			;keep em disabled
-			SkyClimbPapyrus.EndAnimationEarly(playerRef)
+			if vaultMarkerRef.IsFurnitureInUse() == true || medMarkerRef.IsFurnitureInUse() == true || highMarkerRef.IsFurnitureInUse() == true
+				SkyClimbPapyrus.EndAnimationEarly(playerRef)
+			endif
 			vaultMarkerRef.Disable()
 			medMarkerRef.Disable()
 			highMarkerRef.Disable()
