@@ -586,6 +586,8 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     adjustedPos.y = ledgePoint.y + playerDirFlat.y - backwardAdjustment.y;
     adjustedPos.z = ledgePoint.z + zAdjust;
 
+    if (!ledgeMarker) return -1;
+
     if (ledgeMarker->GetParentCell() != player->GetParentCell()) {
         ledgeMarker->MoveTo(player->AsReference());
     }
