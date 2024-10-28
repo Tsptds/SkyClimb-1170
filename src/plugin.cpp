@@ -652,7 +652,7 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
     SKSE::PluginVersionData v;
     v.PluginVersion({Version::MAJOR, Version::MINOR, Version::PATCH});
     v.PluginName("SkyClimb");
-    v.AuthorName("Sokco");
+    v.AuthorName("Sokco & Tsptds");
     v.UsesAddressLibrary();
     v.UsesUpdatedStructs();
     v.CompatibleVersions({SKSE::RUNTIME_1_6_1130, 
@@ -665,7 +665,6 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
 void MessageEvent(SKSE::MessagingInterface::Message *message) {
     // logger::info("Message event");
     if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-        logger::info("Registering button listener");
         ButtonEventListener::Register();
     }
 }

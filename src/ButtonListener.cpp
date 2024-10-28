@@ -48,11 +48,26 @@ namespace ButtonStates {
 }
 
 class ButtonEventListener : public RE::BSTEventSink<RE::InputEvent*> {
+
+private:
+    ButtonEventListener() = default;
+    ButtonEventListener(const ButtonEventListener&) = delete;
+    ButtonEventListener& operator=(const ButtonEventListener&) = delete;
+
 public:
+    
+    static ButtonEventListener* GetSingleton() {
+        static ButtonEventListener instance;
+        return &instance;
+    }
+
+
+    
     static void Register() {
         auto inputManager = RE::BSInputDeviceManager::GetSingleton();
         if (inputManager) {
-            inputManager->AddEventSink(new ButtonEventListener());
+            inputManager->AddEventSink(ButtonEventListener::GetSingleton());
+            logger::info("Registered Button Listener");
         }
     }
 
