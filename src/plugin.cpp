@@ -92,6 +92,8 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
     
 }
 
+
+
     //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
 //float CameraVsHeadToObjectAngle(RE::NiPoint3 objPoint) {
 //    const auto player = RE::PlayerCharacter::GetSingleton();
@@ -372,11 +374,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         return 5;
     }
     return -1;
-    /*if (ledgePoint.z - playerPos.z < 175) {
-        return 1;
-    } else {
-        return 2;
-    }*/
+   
 }
 
 int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLength, float maxElevationIncrease, float minVaultHeight, float maxVaultHeight) {
@@ -516,17 +514,12 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     // Perform ledge check based on player direction
     if (enableVaulting) {
         selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 40.5, 90);
-        //selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 60, 250);    // defaults 110, 250 
+        
     }
 
     if (selectedLedgeType == -1 && enableLedges) {
         selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 30, 250);
-        //// prevent vaulting over to clip out-of-bounds
-        //if (player->GetParentCell()->IsInteriorCell())
-        //    return -1;
-        //else
-            //selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 50, 30, 60);   // defaults 120 10 50 100    // old values 130, 85, 35, 115
-        // Replaced max elevation increase with 30 from 10, min vault with 35 from 50, max vault with 109 from 100
+        
     }
 
     if (selectedLedgeType == -1) {
@@ -599,116 +592,13 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     return selectedLedgeType;
 }
 
-// int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR
-// *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges) {
-//
-//
-//     const auto player = RE::PlayerCharacter::GetSingleton();
-//     const auto playerPos = player->GetPosition();
-//
-//     RE::NiPoint3 cameraDir = CameraDirInternal();
-//
-//     float cameraDirTotal = magnitudeXY(cameraDir.x, cameraDir.y);
-//     RE::NiPoint3 cameraDirFlat;
-//     cameraDirFlat.x = cameraDir.x / cameraDirTotal;
-//     cameraDirFlat.y = cameraDir.y / cameraDirTotal;
-//     cameraDirFlat.z = 0;
-//
-//     int selectedLedgeType = -1;
-//     RE::NiPoint3 ledgePoint;
-//
-//     if (enableLedges) {
-//         selectedLedgeType = LedgeCheck(ledgePoint, cameraDirFlat, 110, 250);
-//     }
-//
-//     if (selectedLedgeType == -1) {
-//
-//         if (enableVaulting) {
-//             selectedLedgeType = VaultCheck(ledgePoint, cameraDirFlat, 120, 10, 50, 100);
-//         }
-//
-//         if (selectedLedgeType == -1)
-//         {
-//             return -1;
-//         }
-//     }
-//
-//
-//     // if camera facing too far away from ledgepoint
-//     if (CameraVsHeadToObjectAngle(ledgePoint) > 80) {
-//         return -1;
-//     }
-//
-//
-//     // rotate to face camera
-//     float zAngle = atan2(cameraDirFlat.x, cameraDirFlat.y);
-//
-//
-//     //it seems we have to MoveTo first in order to get the references into the same cell
-//
-//     if (indicatorRef->GetParentCell() != player->GetParentCell())
-//     {
-//         indicatorRef->MoveTo(player->AsReference());
-//     }
-//
-//     indicatorRef->data.location = ledgePoint + RE::NiPoint3(0,0,5);
-//     indicatorRef->Update3DPosition(true);
-//
-//     indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
-//
-//     RE::TESObjectREFR *ledgeMarker;
-//
-//     float zAdjust;
-//     float toCameraAdjust;
-//
-//
-//     //pick a ledge type
-//
-//
-//     if (selectedLedgeType == 1) {
-//         ledgeMarker = medMarkerRef;
-//         zAdjust = -155;
-//         toCameraAdjust = -50;
-//     }
-//     else if (selectedLedgeType == 2) {
-//         ledgeMarker = highMarkerRef;
-//         zAdjust = -200;
-//         toCameraAdjust = -50;
-//     }
-//     else {
-//         ledgeMarker = vaultMarkerRef;
-//         zAdjust = -60;
-//         toCameraAdjust = -80;
-//     }
-//
-//     // adjust the EVG marker for correct positioning
-//     RE::NiPoint3 adjustedPos;
-//     adjustedPos.x = ledgePoint.x + cameraDirFlat.x * toCameraAdjust;
-//     adjustedPos.y = ledgePoint.y + cameraDirFlat.y * toCameraAdjust;
-//     adjustedPos.z = ledgePoint.z + zAdjust;
-//
-//     if (ledgeMarker->GetParentCell() != player->GetParentCell()) {
-//         ledgeMarker->MoveTo(player->AsReference());
-//     }
-//
-//     ledgeMarker->SetPosition(adjustedPos);
-//
-//     ledgeMarker->data.angle = RE::NiPoint3(0, 0, zAngle);
-//
-//
-//
-//     return selectedLedgeType;
-//
-//
-// }
+
 
 int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef,
                        RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey,
                        bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
-    //if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-    //    return -1;
-    //}
+   
 
     int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
     
@@ -762,26 +652,3 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface *a_s
 
     return true;
 }
-
-/*
-SKSEPluginLoad(const SKSE::LoadInterface *skse) {
-    SKSE::Init(skse);
-
-    //////// PLUGIN START /////////
-
-
-    SetupLog();
-    logger::info("SkyClimb Papyrus Started!");
-
-    SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);
-
-
-    //auto *eventSink = new OurEventSink();
-
-    //SKSE::GetCameraEventSource()->AddEventSink(eventSink);
-
-    //////// PLUGIN END /////////
-
-    return true;
-}
-*/
