@@ -5,13 +5,13 @@ bool canParkour = false
 
 bool climbStarted = false
 
-bool holdingKey = false
+; bool property holdingKey auto
 
 int parkourType = -1
 
-float lastParkourPosX
-float lastParkourPosY
-float lastParkourPosZ
+;float lastParkourPosX
+;float lastParkourPosY
+;float lastParkourPosZ
 Actor property playerRef auto
 
 function OnInit()
@@ -26,11 +26,11 @@ endFunction
 
 function Maintenance()
 
-	UpdateRefs(true)
+	UpdateRefs(false)
 
-	lastParkourPosX = 0
-	lastParkourPosY = 0
-	lastParkourPosZ = 0
+	;lastParkourPosX = 0
+	;lastParkourPosY = 0
+	;lastParkourPosZ = 0
 	
 	;couldParkourLastFrame = false
 	canParkour = false
@@ -41,17 +41,27 @@ function Maintenance()
 	
 	
 	UnregisterForAllKeys()
-	If UseJumpKey
-		RegisterForKey(Input.GetMappedKey("Jump")) ; jump
-	Else
-		RegisterForKey(ClimbKey)
-	EndIf
+	; If UseJumpKey
+	; 	RegisterForKey(Input.GetMappedKey("Jump")) ; jump
+	; Else
+	; 	RegisterForKey(ClimbKey)
+	; EndIf
 	
+	If UseJumpKey
+		SkyClimbPapyrus.RegisterClimbButton(Input.GetMappedKey("Jump"))
+	Else
+		SkyClimbPapyrus.RegisterClimbButton(ClimbKey)
+	EndIf
+
 	RegisterForSingleUpdate(0.05)
 	
 	
 
 endFunction
+
+Event OnLocationChange(Location akOldLoc, Location akNewLoc)
+	UpdateRefs(false)
+EndEvent
 
 bool function ParkourActive()
 	;return Game.GetPlayer().GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
@@ -124,12 +134,13 @@ Event OnUpdate()
 			canParkour = false
 			indicatorRef.Disable()
 		endif
-		RegisterForSingleUpdate(0.03)
+		;SkyClimbPapyrus.ToggleJumping(true)
+		RegisterForSingleUpdate(0.05)
 		return
 	endif
 
 
-	UpdateRefs(true)
+	; UpdateRefs(true)
 	; couldParkourLastFrame = canParkour
 
 	; if climbStarted == false && ParkourActive()
@@ -148,35 +159,37 @@ Event OnUpdate()
 			if canParkour == true
 				canParkour = false
 				indicatorRef.Disable()
-					
+				playerRef.SetAnimationVariableBool("IsInFurniture", false) ; Clear the furniture state
 			endif
 			
 			;keep em disabled
-			if vaultMarkerRef.IsFurnitureInUse() == true || medMarkerRef.IsFurnitureInUse() == true || highMarkerRef.IsFurnitureInUse() == true
-				SkyClimbPapyrus.EndAnimationEarly(playerRef)
-			endif
-			vaultMarkerRef.Disable()
-			medMarkerRef.Disable()
-			highMarkerRef.Disable()
-			grabMarkerRef.Disable()
+			;vaultMarkerRef.Disable()
+			;medMarkerRef.Disable()
+			;highMarkerRef.Disable()
+			;grabMarkerRef.Disable()
 		endif
 	 endif
 
-	
-	if holdingKey ;&& ParkourActive()
+	; if UseJumpKey
+    ;     holdingKey = Input.IsKeyPressed(Input.GetMappedKey("Jump"))
+    ; else
+    ;     holdingKey = Input.IsKeyPressed(ClimbKey)
+    ; endif
+
+	if SkyClimbPapyrus.IsClimbKeyDown() ;&& ParkourActive()
 		KeepClimbing()
 	endif
-	RegisterForSingleUpdate(0.03)
+	RegisterForSingleUpdate(0.05)
 
 EndEvent
 
-Event OnKeyUp(Int KeyCode, Float HoldTime)
-	holdingKey = false
-EndEvent
+; Event OnKeyUp(Int KeyCode, Float HoldTime)
+; 	holdingKey = false
+; EndEvent
 
-Event OnKeyDown(Int KeyCode)
-	holdingKey = true
-EndEvent
+; Event OnKeyDown(Int KeyCode)
+; 	holdingKey = true
+; EndEvent
 
 function KeepClimbing()
 	; if climbStarted == false && couldParkourLastFrame && canParkour && parkourType >= 0 && ParkourActive()		;Default couldParkourLastFrame
@@ -186,22 +199,20 @@ function KeepClimbing()
 		;playerRef.SetAnimationVariableBool("bInJumpState", false)
 	
 		climbStarted = true
+		; holdingKey = false
 
 		if parkourType == 5
 			grabMarkerRef.Enable()
 			Utility.Wait(0.01)
 			grabActivatorRef.Activate(playerRef)
-			Utility.Wait(1.5)
+			Utility.Wait(0.05)
+			
 			;climbStarted = false
 		elseif parkourType == 1
 			medMarkerRef.Enable()
 			Utility.Wait(0.01)
 			medActivatorRef.Activate(playerRef)
-			Utility.Wait(1.5)
-
-			;Utility.Wait(2.2)
-			;medMarkerRef.Disable()
-			;SkyClimbPapyrus.EndAnimationEarly(playerRef)
+			Utility.Wait(0.05)
 
 			;climbStarted = false
 		
@@ -209,32 +220,8 @@ function KeepClimbing()
 			highMarkerRef.Enable()
 			Utility.Wait(0.01)
 			highActivatorRef.Activate(playerRef)
-			Utility.Wait(2.0)
+			Utility.Wait(0.05)
 			
-			;Utility.Wait(2.7)
-			;highMarkerRef.Disable()
-			;SkyClimbPapyrus.EndAnimationEarly(playerRef)
-
-			;climbStarted = false
-		
-		; elseif parkourType == 3
-		; 	vaultMarkerRef.Enable()
-		; 	Utility.Wait(0.01)
-		; 	vaultActivatorRef.Activate(playerRef)
-		; 	Utility.Wait(0.05)
-		; 	climbStarted = false
-		
-		; elseif parkourType == 4
-		; 	vaultMarkerRef.Enable()
-		; 	Utility.Wait(0.01)
-		; 	vaultActivatorRef.Activate(playerRef)
-		; 	Utility.Wait(1.1)
-		; 	vaultMarkerRef.Disable()
-		
-		; 	SkyClimbPapyrus.EndAnimationEarly(playerRef)
-		; 	climbStarted = false
-		
-		; Always cut off landing animation for smoother vaults
 		elseif parkourType == 3
 			vaultMarkerRef.Enable()
 			Utility.Wait(0.01)
@@ -245,12 +232,6 @@ function KeepClimbing()
 			SkyClimbPapyrus.EndAnimationEarly(playerRef)
 			;climbStarted = false
 
-		; elseif parkourType == 5
-		; 	grabMarkerRef.Enable()
-		; 	Utility.Wait(0.01)
-		; 	grabActivatorRef.Activate(playerRef)
-		; 	Utility.Wait(0.05)
-		; 	;climbStarted = false
 		endif
 
 		climbStarted = false
