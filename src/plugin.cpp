@@ -187,6 +187,10 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
 
         uint32_t layerIndex = pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F;
 
+        if (!layerIndex) {
+            return -1;
+        }
+
         if (logLayer) logger::info("\nlayer hit: {}", layerIndex);
 
         //fail if hit a character
