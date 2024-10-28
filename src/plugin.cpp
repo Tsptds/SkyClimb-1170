@@ -94,14 +94,13 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
     
 }
 
-void RegisterClimbButton(int dxcode) {
+void RegisterClimbButton(RE::StaticFunctionTag *, int dxcode) {
     ButtonStates::DXCODE = dxcode;
-    logger::info("climb key registered as {}", dxcode);
+    logger::info("Climb key registered as {}", dxcode);
 }
 
 bool IsClimbKeyDown(RE::StaticFunctionTag *) {
-
-    return false;
+    return ButtonStates::isDown;
 }
 
     //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
@@ -638,6 +637,8 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
     vm->RegisterFunction("UpdateParkourPoint", "SkyClimbPapyrus", UpdateParkourPoint);
 
     vm->RegisterFunction("IsClimbKeyDown", "SkyClimbPapyrus", IsClimbKeyDown);
+
+    vm->RegisterFunction("RegisterClimbButton", "SkyClimbPapyrus", RegisterClimbButton);
 
     return true; 
 }
