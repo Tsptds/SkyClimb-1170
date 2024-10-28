@@ -4,7 +4,7 @@
 
 
 
-bool logSwitch = true;
+bool logSwitch = false;
 
 
 
@@ -40,7 +40,7 @@ namespace ButtonStates {
         
         auto it = xinputToCKMap.find(dxcode);
         if (it != xinputToCKMap.end()) {
-            logger::info("Gamepad input found, returning {}", it->second);
+            logger::info("Gamepad input found, mapping {}", it->second);
             return it->second;
         }
         return dxcode;  // Return default value if key not found
@@ -72,7 +72,7 @@ public:
                 // Convert Xinput codes to creation kit versions
                 if (buttonEvent->GetDevice() == RE::INPUT_DEVICE::kGamepad) {
                     
-                    const auto ckMapped = ButtonStates::MapToGamepadIfPossible(dxScanCode);
+                    const auto ckMapped = ButtonStates::xinputToCKMap[dxScanCode];
                     
                     if(logSwitch) 
                         logger::info("Gamepad: Xinput: {} -> CK Map: {}", dxScanCode, ckMapped);
@@ -86,7 +86,7 @@ public:
                     if (buttonEvent->IsDown() /*&& buttonEvent->HeldDuration() > 2.0f*/ ) {
                         ButtonStates::isDown = true;
 
-                        if (logSwitch)
+                        //if (logSwitch)
                             logger::info("Holding Climb key, DX code : {}, Input Type: {}", dxScanCode,
                                          buttonEvent->GetDevice());
                     }
@@ -94,13 +94,13 @@ public:
                     if (buttonEvent->IsUp()) {
                         ButtonStates::isDown = false;
 
-                        if (logSwitch)
+                        //if (logSwitch)
                             logger::info("Climb key released, DX code : {}, Input Type: {}", dxScanCode,
                                          buttonEvent->GetDevice());
                     }
                 }
             }
-            logger::info("Climb Allowed: {}", ButtonStates::isDown);
+            //logger::info("Climb Allowed: {}", ButtonStates::isDown);
             return RE::BSEventNotifyControl::kContinue;
         }
     }
