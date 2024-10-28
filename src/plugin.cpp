@@ -94,9 +94,14 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
     
 }
 
-void RegisterClimbButton(RE::StaticFunctionTag *, int dxcode) {
-    ButtonStates::DXCODE = dxcode;
-    logger::info("Climb key registered as {}", dxcode);
+void RegisterClimbButton(RE::StaticFunctionTag *, int32_t dxcode) {
+    
+    const auto mappedButton = ButtonStates::MapToGamepadIfPossible(dxcode);
+
+    ButtonStates::DXCODE = mappedButton;
+    logger::info("Climb key registered: {}", mappedButton);
+
+    
 }
 
 bool IsClimbKeyDown(RE::StaticFunctionTag *) {
