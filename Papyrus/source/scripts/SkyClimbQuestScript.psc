@@ -6,7 +6,6 @@ bool canParkour = false
 bool climbStarted = false
 
 ; bool property holdingKey auto
-
 int parkourType = -1
 
 ;float lastParkourPosX
@@ -64,7 +63,7 @@ Event OnLocationChange(Location akOldLoc, Location akNewLoc)
 EndEvent
 
 bool function ParkourActive()
-	;return Game.GetPlayer().GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
+	;return playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
 	return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
 	
 endFunction
@@ -74,42 +73,42 @@ function UpdateRefs(bool forceUpdateLinks)
 	bool updateLinks = false
 	; Ledge Grab
 	if(grabMarkerRef == none)
-		grabMarkerRef = Game.GetPlayer().PlaceAtMe(grabMarkerProp, 1, true, false)
+		grabMarkerRef = playerRef.PlaceAtMe(grabMarkerProp, 1, true, false)
 		updateLinks = true
 	endIf
 
 	if(grabActivatorRef == none)
-		grabActivatorRef = Game.GetPlayer().PlaceAtMe(grabActivatorProp, 1, true, false)
+		grabActivatorRef = playerRef.PlaceAtMe(grabActivatorProp, 1, true, false)
 		updateLinks = true
 	endIf
 
 	if(vaultActivatorRef == none)
-		vaultActivatorRef = Game.GetPlayer().PlaceAtMe(vaultActivatorProp, 1, true, false)
+		vaultActivatorRef = playerRef.PlaceAtMe(vaultActivatorProp, 1, true, false)
 		updateLinks = true
 	endIf
 	
 	if(vaultMarkerRef == none)
-		vaultMarkerRef = Game.GetPlayer().PlaceAtMe(vaultMarkerProp, 1, true, false)
+		vaultMarkerRef = playerRef.PlaceAtMe(vaultMarkerProp, 1, true, false)
 		updateLinks = true
 	endif
 
 	if(medActivatorRef == none)
-		medActivatorRef = Game.GetPlayer().PlaceAtMe(medActivatorProp, 1, true, false)
+		medActivatorRef = playerRef.PlaceAtMe(medActivatorProp, 1, true, false)
 		updateLinks = true
 	endIf
 	
 	if(medMarkerRef == none)
-		medMarkerRef = Game.GetPlayer().PlaceAtMe(medMarkerProp, 1, true, false)
+		medMarkerRef = playerRef.PlaceAtMe(medMarkerProp, 1, true, false)
 		updateLinks = true
 	endif
 	
 	if(highActivatorRef == none)
-		highActivatorRef = Game.GetPlayer().PlaceAtMe(highActivatorProp, 1, true, false)
+		highActivatorRef = playerRef.PlaceAtMe(highActivatorProp, 1, true, false)
 		updateLinks = true
 	endIf
 	
 	if(highMarkerRef == none)
-		highMarkerRef = Game.GetPlayer().PlaceAtMe(highMarkerProp, 1, true, false)
+		highMarkerRef = playerRef.PlaceAtMe(highMarkerProp, 1, true, false)
 		updateLinks = true
 	endif
 	
@@ -122,7 +121,7 @@ function UpdateRefs(bool forceUpdateLinks)
 	endIf
 
 	if(indicatorRef == none)
-		indicatorRef = Game.GetPlayer().PlaceAtMe(indicatorObject, 1, true, false)
+		indicatorRef = playerRef.PlaceAtMe(indicatorObject, 1, true, false)
 	endif
 
 endFunction
@@ -194,7 +193,7 @@ EndEvent
 function KeepClimbing()
 	; if climbStarted == false && couldParkourLastFrame && canParkour && parkourType >= 0 && ParkourActive()		;Default couldParkourLastFrame
 	if climbStarted == false && canParkour
-		;Actor playerRef = Game.GetPlayer()
+		;Actor playerRef = playerRef
 
 		;playerRef.SetAnimationVariableBool("bInJumpState", false)
 	
