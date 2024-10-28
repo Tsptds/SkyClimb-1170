@@ -1,3 +1,5 @@
+#include "ButtonListener.cpp"
+
 namespace logger = SKSE::log;
 
 void SetupLog() {
@@ -92,7 +94,15 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
     
 }
 
+void RegisterClimbButton(int dxcode) {
+    ButtonStates::DXCODE = dxcode;
+    logger::info("climb key registered as {}", dxcode);
+}
 
+bool IsClimbKeyDown(RE::StaticFunctionTag *) {
+
+    return false;
+}
 
     //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
 //float CameraVsHeadToObjectAngle(RE::NiPoint3 objPoint) {
@@ -627,6 +637,8 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 
     vm->RegisterFunction("UpdateParkourPoint", "SkyClimbPapyrus", UpdateParkourPoint);
 
+    vm->RegisterFunction("IsClimbKeyDown", "SkyClimbPapyrus", IsClimbKeyDown);
+
     return true; 
 }
 
@@ -643,12 +655,21 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
     return v;
 }();
 
+
+void MessageEvent(SKSE::MessagingInterface::Message *message) {
+    // logger::info("Message event");
+    if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+        logger::info("Registering button listener");
+        ButtonEventListener::Register();
+    }
+}
 extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface *a_skse) {
     SetupLog();
 
     SKSE::Init(a_skse);
     logger::info("SkyClimb Papyrus Started!");
-    SKSE::GetPapyrusInterface()->Register(PapyrusFunctions);    
-
+    SKSE::GetPapyrusInterface()->Register(PapyrusFunctions); 
+    SKSE::GetMessagingInterface()->RegisterListener(MessageEvent);
+    
     return true;
 }
