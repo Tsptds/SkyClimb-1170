@@ -96,14 +96,16 @@ public:
 
                 // Continue if there's a defined dxcode 
                 if (dxScanCode == ButtonStates::DXCODE) {
-                    
-                    // if button is held down more than 2 seconds
-                    if (buttonEvent->IsDown() /*&& buttonEvent->HeldDuration() > 2.0f*/ ) {
+                    if (buttonEvent->IsDown()) {
+                        // if (logSwitch)
+                        logger::info("Holding Climb key, DX code : {}, Input Type: {}", dxScanCode,
+                                     buttonEvent->GetDevice());
+                    }
+                    // if button is held down more than x seconds
+                    if (/*buttonEvent->IsDown()*/buttonEvent->IsPressed() && buttonEvent->HeldDuration() > 0.3f ) {
                         ButtonStates::isDown = true;
 
-                        //if (logSwitch)
-                            logger::info("Holding Climb key, DX code : {}, Input Type: {}", dxScanCode,
-                                         buttonEvent->GetDevice());
+                        
                     }
                     // immediately let go off the button
                     if (buttonEvent->IsUp()) {
