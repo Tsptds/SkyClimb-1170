@@ -94,8 +94,8 @@ public:
                     if(logSwitch) 
                         logger::info("Gamepad: Xinput: {} -> CK Map: {}", dxScanCode, ckMapped);
                     dxScanCode = ckMapped;
-                    if (dxScanCode != ButtonStates::DXCODE) return RE::BSEventNotifyControl::kContinue;
                 }
+                if (dxScanCode != ButtonStates::DXCODE) continue;
 
                 // Continue if there's a defined dxcode 
                 if (dxScanCode == ButtonStates::DXCODE) {

@@ -505,6 +505,11 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
                   float backwardOffset = 55.0f) {
+    
+    // Nullptr check
+    if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !grabMarkerRef) {
+        return -1;
+    }
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
