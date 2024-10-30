@@ -383,12 +383,12 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
         // Check if horizontal distance is more than half of the vertical distance
         if (horizontalDistance > floor(verticalDistance / 2)) { // this greatly prevents climbing into stairs while allowing low height grabs
-            logger::info("Ledge too far H:{} V:{}", horizontalDistance, verticalDistance);
+            //logger::info("Ledge too far H:{} V:{}", horizontalDistance, verticalDistance);
             return -1;  // Cancel climb if too far horizontally
         }
 
-        //logger::info("Returned Grab Ledge");
-        logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
+        
+        //logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
         return 5;
     }
     return -1;
@@ -485,10 +485,10 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
         // Check if horizontal distance is more than half of the vertical distance
         if (horizontalDistance > floor(verticalDistance /** 3 / 4*/)) {
-            logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
+            //logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
             return -1;  // Cancel climb if too far horizontally
         }
-        logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
+        //logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
         return 3;
         
         
@@ -546,7 +546,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // If player's direction is too far away from the ledge point
     if (PlayerVsObjectAngle(ledgePoint) > 80) {
-        logger::info("Player is too far away from ledge");
+        //logger::info("Player is too far away from ledge");
         return -1;
     }
 
@@ -570,22 +570,22 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // ledge  grab
     if (selectedLedgeType == 5) {
-        logger::info("Selected Grab Ledge");
+        //logger::info("Selected Grab Ledge");
         ledgeMarker = grabMarkerRef;
         zAdjust = -80;
         backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50;     // 50 is fine for this
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
-        logger::info("Selected Med Ledge");
+        //logger::info("Selected Med Ledge");
         ledgeMarker = medMarkerRef;
         zAdjust = -155;
     } else if (selectedLedgeType == 2) {
-        logger::info("Selected High Ledge");
+        //logger::info("Selected High Ledge");
         ledgeMarker = highMarkerRef;
         zAdjust = -200;
     } else {
-        logger::info("Selected Vault");
+        //logger::info("Selected Vault");
         ledgeMarker = vaultMarkerRef;
         zAdjust = -60;  // default -60
     }

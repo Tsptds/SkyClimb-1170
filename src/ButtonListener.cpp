@@ -18,6 +18,8 @@ bool logSwitch = false;
 namespace ButtonStates {
     int32_t DXCODE = -1;
     bool isDown = false;
+    float lastKeyDownTime = 0.0f;      // Track time of last valid press
+    const float debounceDelay = 0.3f;  // Set debounce delay
 
     std::unordered_map<int32_t, int32_t> xinputToCKMap = {
         {0x0001, 266},  // DPAD_UP
@@ -80,7 +82,7 @@ public:
                 
                 auto dxScanCode = buttonEvent->GetIDCode();  // DX Scan Code
                 //logger::info("DX code : {}, Input Type: {}", dxScanCode, buttonEvent->GetDevice());
-                
+                if (dxScanCode != ButtonStates::DXCODE) continue;
                 // Unless there's a valid key code, don't check for inputs (Happens when papyrus calls SkyClimbPapyrus.RegisterClimbButton)
                 if (ButtonStates::DXCODE == -1) return RE::BSEventNotifyControl::kContinue;
 
@@ -102,14 +104,19 @@ public:
                                      buttonEvent->GetDevice());
                     }
                     // if button is held down more than x seconds
-                    if (/*buttonEvent->IsDown()*/buttonEvent->IsPressed() && buttonEvent->HeldDuration() > 0.3f ) {
-                        ButtonStates::isDown = true;
+                    if (buttonEvent->IsPressed()) {
+                        if (ButtonStates::lastKeyDownTime + ButtonStates::debounceDelay <=
+                            buttonEvent->HeldDuration()) {
+                            ButtonStates::isDown = true;
+                            ButtonStates::lastKeyDownTime = buttonEvent->HeldDuration();  // Update time of last press
+                        }
 
                         
                     }
                     // immediately let go off the button
                     if (buttonEvent->IsUp()) {
                         ButtonStates::isDown = false;
+                        ButtonStates::lastKeyDownTime = 0.0f;  // Reset time on release
 
                         //if (logSwitch)
                             logger::info("Climb key released, DX code : {}, Input Type: {}", dxScanCode,
