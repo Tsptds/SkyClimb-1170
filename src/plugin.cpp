@@ -388,7 +388,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         }
 
         
-        //logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
+        logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
         return 5;
     }
     return -1;
@@ -488,7 +488,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
             //logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
             return -1;  // Cancel climb if too far horizontally
         }
-        //logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
+        logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
         return 3;
         
         
