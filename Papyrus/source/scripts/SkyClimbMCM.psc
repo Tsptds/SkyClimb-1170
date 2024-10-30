@@ -4,7 +4,8 @@ int climbKeyOption
 int useJumpKeyOption
 int enableLedgesOption
 int enableVaultingOption
-
+int useStaminaOption
+int staminaSlider
 
 Event OnPageReset(string page)
 
@@ -24,6 +25,10 @@ Event OnPageReset(string page)
 
 	enableLedgesOption = AddToggleOption("Enable Ledges", sc.EnableLedges)
 	enableVaultingOption = AddToggleOption("Enable Vaulting", sc.EnableVaulting)
+	
+	;Stamina consumption
+	useStaminaOption = AddToggleOption("Enable Stamina Consumption", sc.ConsumeStamina)
+	staminaSlider = AddSliderOption("Stamina Damage Value", sc.StaminaDamage)
 
 EndEvent
 
@@ -75,6 +80,29 @@ event OnOptionSelect(int option)
 	elseif (option == enableVaultingOption)
 		sc.EnableVaulting = !sc.EnableVaulting
 		SetToggleOptionValue(option, sc.EnableVaulting)
+	elseif (option == useStaminaOption)
+		sc.ConsumeStamina = !sc.ConsumeStamina
+		SetToggleOptionValue(option, sc.ConsumeStamina)
+	endIf
+endEvent
+
+event OnOptionSliderOpen(int a_option)
+	{Called when the user selects a slider option}
+
+	if (a_option == staminaSlider)
+		SetSliderDialogStartValue(25)
+		SetSliderDialogDefaultValue(25)
+		SetSliderDialogRange(0, 100)
+		SetSliderDialogInterval(1)
+	endIf
+endEvent
+
+event OnOptionSliderAccept(int a_option, float a_value)
+	{Called when the user accepts a new slider value}
+		
+	if (a_option == staminaSlider)
+		sc.StaminaDamage = a_value
+		SetSliderOptionValue(a_option, a_value)
 	endIf
 endEvent
 
