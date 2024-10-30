@@ -1,31 +1,30 @@
 Scriptname SkyClimbQuestScript extends Quest  
 
 bool property canParkour auto
-bool couldParkourLastFrame = false
+bool property couldParkourLastFrame auto
 
 bool property climbStarted auto
 
 ; bool property holdingKey auto
-int parkourType = -1
+int property parkourType auto
 
 ;float lastParkourPosX
 ;float lastParkourPosY
 ;float lastParkourPosZ
 Actor property playerRef auto
 
-function OnInit()
+Event OnInit()
 
 	;string hello = SkyClimbPapyrus.SayHello()
 	
 	;Debug.MessageBox(hello)
 	
-	Maintenance()
-	
-endFunction
+	;Maintenance()
+EndEvent
 
 function Maintenance()
 
-	UpdateRefs(true)
+	UpdateRefs()
 
 	;lastParkourPosX = 0
 	;lastParkourPosY = 0
@@ -62,7 +61,7 @@ function Maintenance()
 endFunction
 
 Event OnLocationChange(Location akOldLoc, Location akNewLoc)
-	UpdateRefs(true)
+	UpdateRefs()
 
 EndEvent
 
@@ -72,7 +71,7 @@ bool function ParkourActive()
 	
 endFunction
 
-function UpdateRefs(bool forceUpdateLinks)
+function UpdateRefs()
 
 	;bool updateLinks = false
 	; Ledge Grab
@@ -116,13 +115,13 @@ function UpdateRefs(bool forceUpdateLinks)
 		;updateLinks = true
 	endif
 	
-	if forceUpdateLinks ; || updateLinks
+	; if forceUpdateLinks ; || updateLinks
 		PO3_SKSEFunctions.SetLinkedRef(vaultActivatorRef, vaultMarkerRef)
 		PO3_SKSEFunctions.SetLinkedRef(medActivatorRef, medMarkerRef)
 		PO3_SKSEFunctions.SetLinkedRef(highActivatorRef, highMarkerRef)
 		
 		PO3_SKSEFunctions.SetLinkedRef(grabActivatorRef, grabMarkerRef)
-	endIf
+	;endIf
 
 	if(indicatorRef == none)
 		indicatorRef = playerRef.PlaceAtMe(indicatorObject, 1, true, false)
@@ -143,7 +142,7 @@ Event OnUpdate()
 	endif
 
 
-	; UpdateRefs(true)
+	UpdateRefs()
 	; couldParkourLastFrame = canParkour
 
 	; if climbStarted == false && ParkourActive()
@@ -196,6 +195,73 @@ Event OnUpdate()
 
 EndEvent
 
+State AfterFirstLoad
+	Event OnUpdate()
+
+		if !ParkourActive()
+			if canParkour
+				canParkour = false
+				indicatorRef.Disable()
+			endif
+			;SkyClimbPapyrus.ToggleJumping(true)
+			RegisterForSingleUpdate(0.05)
+			return
+		endif
+	
+	
+		; UpdateRefs(true)
+		; couldParkourLastFrame = canParkour
+	
+		; if climbStarted == false && ParkourActive()
+		if !climbStarted
+		
+			parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges, grabMarkerRef)
+		
+			if parkourType >= 0
+				
+				if canParkour == false
+					canParkour = true
+					indicatorRef.Enable()
+				endif
+	
+			else
+				if canParkour == true
+					canParkour = false
+					indicatorRef.Disable()
+					;playerRef.SetAnimationVariableBool("IsInFurniture", false) ; Clear the furniture state
+					;SkyClimbPapyrus.EndAnimationEarly(playerRef)
+				endif
+				
+				;keep em disabled
+				; vaultMarkerRef.Disable()
+				; medMarkerRef.Disable()
+				; highMarkerRef.Disable()
+				; grabMarkerRef.Disable()
+				if couldParkourLastFrame == false
+					vaultMarkerRef.Disable()
+					medMarkerRef.Disable()
+					highMarkerRef.Disable()
+					grabMarkerRef.Disable()
+				endif
+			endif
+		 endif
+	
+		; if UseJumpKey
+		;     holdingKey = Input.IsKeyPressed(Input.GetMappedKey("Jump"))
+		; else
+		;     holdingKey = Input.IsKeyPressed(ClimbKey)
+		; endif
+	
+		if SkyClimbPapyrus.IsClimbKeyDown() ;&& ParkourActive()
+			KeepClimbing()
+			couldParkourLastFrame = true
+		else
+			couldParkourLastFrame = false
+		endif
+		RegisterForSingleUpdate(0.05)
+	
+	EndEvent
+endstate
 ; Event OnKeyUp(Int KeyCode, Float HoldTime)
 ; 	holdingKey = false
 ; EndEvent
