@@ -82,7 +82,7 @@ public:
                 
                 auto dxScanCode = buttonEvent->GetIDCode();  // DX Scan Code
                 //logger::info("DX code : {}, Input Type: {}", dxScanCode, buttonEvent->GetDevice());
-                if (dxScanCode != ButtonStates::DXCODE) continue;
+                
                 // Unless there's a valid key code, don't check for inputs (Happens when papyrus calls SkyClimbPapyrus.RegisterClimbButton)
                 if (ButtonStates::DXCODE == -1) return RE::BSEventNotifyControl::kContinue;
 
@@ -94,6 +94,7 @@ public:
                     if(logSwitch) 
                         logger::info("Gamepad: Xinput: {} -> CK Map: {}", dxScanCode, ckMapped);
                     dxScanCode = ckMapped;
+                    if (dxScanCode != ButtonStates::DXCODE) return RE::BSEventNotifyControl::kContinue;
                 }
 
                 // Continue if there's a defined dxcode 
