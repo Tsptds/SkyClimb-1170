@@ -19,7 +19,7 @@ namespace ButtonStates {
     int32_t DXCODE = -1;
     bool isDown = false;
     float lastKeyDownTime = 0.0f;      // Track time of last valid press
-    const float debounceDelay = 0.3f;  // Set debounce delay
+    const float debounceDelay = 0.1f;  // Set debounce delay
 
     std::unordered_map<int32_t, int32_t> xinputToCKMap = {
         {0x0001, 266},  // DPAD_UP
@@ -126,7 +126,9 @@ public:
                 }
             }
             //logger::info("Climb Allowed: {}", ButtonStates::isDown);
-            return RE::BSEventNotifyControl::kContinue;
+            
         }
+        // DON'T SKIP ANY INPUTS, THIS GOES AFTER FOR LOOP. OTHERWISE BREAKS OTHER INPUTS
+        return RE::BSEventNotifyControl::kContinue;
     }
 };
