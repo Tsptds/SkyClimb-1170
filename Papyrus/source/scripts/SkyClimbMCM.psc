@@ -60,7 +60,7 @@ endEvent
 event OnOptionSelect(int option)
 	if (option == useJumpKeyOption)
 		sc.UseJumpKey = !sc.UseJumpKey
-		
+		sc.UpdateRefs()
 		;sc.UnregisterForAllKeys()
 		
 		if sc.UseJumpKey == false
