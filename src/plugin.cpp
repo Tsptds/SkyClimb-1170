@@ -1,6 +1,13 @@
 #include "ButtonListener.cpp"
-
+#include "Util.cpp"
 namespace logger = SKSE::log;
+
+// Global variable, hate doing this
+RE::COL_LAYER lastHitObject;
+// switch for layer hit logs
+bool logLayer = false;
+
+float PlayerScale = 1.0f;
 
 void SetupLog() {
     auto logsFolder = SKSE::log::log_directory();
@@ -16,6 +23,7 @@ void SetupLog() {
     spdlog::flush_on(spdlog::level::info);
 
     spdlog::set_pattern("%v");
+    //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
 }
 
 /*
@@ -155,10 +163,6 @@ float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
     return acos(dot) * radToDeg;
 }
 
-// Global variable, hate doing this
-RE::COL_LAYER lastHitObject;
-// switch for layer hit logs
-bool logLayer = false;
 
 void LastObjectHitType(RE::COL_LAYER obj) { lastHitObject = obj; }
 
@@ -262,16 +266,9 @@ bool PlayerIsGrounded() {
 bool PlayerIsInWater() {
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    const auto playerPos = player->GetPosition();
-
-    // temp water swimming fix
-    float waterLevel;
-    player->GetParentCell()->GetWaterHeight(playerPos, waterLevel);
-
-    if (playerPos.z - waterLevel < -50) {
-        return true;
+    if (auto actorState = player->IsSwimming()) {
+       return true;
     }
-
     return false;
 }
 
@@ -282,10 +279,10 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     const auto playerPos = player->GetPosition();
     //const auto playerInInterior = player->GetParentCell()->IsInteriorCell();
 
-    float startZOffset = 100;  // how high to start the raycast above the feet of the player
-    float playerHeight = 120;  // how much headroom is needed
-    float minUpCheck = 100;    // how low can the roof be relative to the raycast starting point?
-    float maxUpCheck = (maxLedgeHeight - startZOffset) + 20;  // how high do we even check for a roof?
+    float startZOffset = 100 * PlayerScale;  // how high to start the raycast above the feet of the player
+    float playerHeight = 120 * PlayerScale;  // how much headroom is needed
+    float minUpCheck = 100 * PlayerScale;    // how low can the roof be relative to the raycast starting point?
+    float maxUpCheck = (maxLedgeHeight - startZOffset) + 20 * PlayerScale;  // how high do we even check for a roof?
     float fwdCheck = 8; // how much each incremental forward check steps forward               // Default 10
     int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 12
     float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
@@ -354,7 +351,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     }
 
     // make sure player can stand on top
-    float headroomBuffer = 10; // default 10
+    float headroomBuffer = 10 * PlayerScale; // default 10
 
     RE::NiPoint3 headroomRayStart = ledgePoint + upRayDir * headroomBuffer;
 
@@ -368,10 +365,10 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     if (logLayer) logger::info("**************\nLedge - player {}", ledgePlayerDiff);
     if (logLayer) logger::info("Flatness {}", normalZ);
 
-    if (ledgePlayerDiff > 175) {
+    if (ledgePlayerDiff > 175 * PlayerScale) {
         //logger::info("Returned High Ledge");
         return 2;
-    } else if (ledgePlayerDiff >= 120) {
+    } else if (ledgePlayerDiff >= 120 * PlayerScale) {
         //logger::info("Returned Med Ledge");
         return 1;
         
@@ -402,7 +399,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
     RE::hkVector4 normalOut(0, 0, 0, 0);
 
-    float headHeight = 120;
+    float headHeight = 120 * PlayerScale;
 
     RE::NiPoint3 fwdRayStart;
     fwdRayStart.x = playerPos.x;
@@ -504,7 +501,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
-                  float backwardOffset = 55.0f) {
+                  float backwardOffset = 55.0f * PlayerScale) {
     
     // Nullptr check
     if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !grabMarkerRef) {
@@ -536,12 +533,12 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 40.5, 90);
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 40.5 * PlayerScale, 90 * PlayerScale);
         
     }
 
     if (selectedLedgeType == -1 && enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 30, 250);
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 30 * PlayerScale, 250 * PlayerScale);
         
     }
 
@@ -577,22 +574,22 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     if (selectedLedgeType == 5) {
         //logger::info("Selected Grab Ledge");
         ledgeMarker = grabMarkerRef;
-        zAdjust = -80;
-        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50;     // 50 is fine for this
+        zAdjust = -80 * PlayerScale;
+        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50 * PlayerScale;     // 50 is fine for this
     }
     // Select ledge type
     else if (selectedLedgeType == 1) {
         //logger::info("Selected Med Ledge");
         ledgeMarker = medMarkerRef;
-        zAdjust = -155;
+        zAdjust = -155 * PlayerScale;
     } else if (selectedLedgeType == 2) {
         //logger::info("Selected High Ledge");
         ledgeMarker = highMarkerRef;
-        zAdjust = -200;
+        zAdjust = -200 * PlayerScale;
     } else {
         //logger::info("Selected Vault");
         ledgeMarker = vaultMarkerRef;
-        zAdjust = -60;  // default -60
+        zAdjust = -60 * PlayerScale;  // default -60
     }
 
 
@@ -622,6 +619,7 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
                        bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
     
    
+    PlayerScale = GetScale();
 
     int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
     
