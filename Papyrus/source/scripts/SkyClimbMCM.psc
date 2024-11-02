@@ -6,6 +6,7 @@ int enableLedgesOption
 int enableVaultingOption
 int useStaminaOption
 int staminaSlider
+int climbDelaySlider
 
 Event OnPageReset(string page)
 
@@ -30,6 +31,8 @@ Event OnPageReset(string page)
 	useStaminaOption = AddToggleOption("Enable Stamina Consumption", sc.ConsumeStamina)
 	staminaSlider = AddSliderOption("Stamina Damage Value", sc.StaminaDamage)
 
+	;Climb Delay
+	climbDelaySlider = AddSliderOption("Button Delay Seconds", sc.ButtonDelay, "{1}s")
 EndEvent
 
 event OnOptionKeyMapChange(int option, int keyCode, string conflictControl, string conflictName)
@@ -90,11 +93,18 @@ event OnOptionSliderOpen(int a_option)
 	{Called when the user selects a slider option}
 
 	if (a_option == staminaSlider)
-		SetSliderDialogStartValue(25)
+		SetSliderDialogStartValue(sc.staminaDamage)
 		SetSliderDialogDefaultValue(25)
 		SetSliderDialogRange(0, 100)
 		SetSliderDialogInterval(1)
 	endIf
+
+	if (a_option == climbDelaySlider)
+		SetSliderDialogStartValue(sc.ButtonDelay)
+		SetSliderDialogDefaultValue(0.0)
+		SetSliderDialogRange(0.0, 0.5)
+		SetSliderDialogInterval(0.1)
+	endif
 endEvent
 
 event OnOptionSliderAccept(int a_option, float a_value)
@@ -104,6 +114,12 @@ event OnOptionSliderAccept(int a_option, float a_value)
 		sc.StaminaDamage = a_value
 		SetSliderOptionValue(a_option, a_value)
 	endIf
+
+	if (a_option == climbDelaySlider)
+		sc.ButtonDelay = a_value
+		SetSliderOptionValue(a_option, a_value, "{1}s")
+		SkyClimbPapyrus.RegisterClimbDelay(a_value)
+	endif
 endEvent
 
 SkyClimbQuestScript Property sc Auto

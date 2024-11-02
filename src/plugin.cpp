@@ -67,22 +67,6 @@ std::string SayHello(RE::StaticFunctionTag *) {
     return "Hello from SkyClimb 6!"; 
 }
 
-
-
-//RE::NiPoint3 CameraDirInternal() {
-//
-//    const auto worldCamera = RE::Main::WorldRootCamera();
-//
-//    
-//
-//    RE::NiPoint3 output;
-//    output.x = worldCamera->world.rotate.entry[0][0];
-//    output.y = worldCamera->world.rotate.entry[1][0];
-//    output.z = worldCamera->world.rotate.entry[2][0];
-//
-//    return output;
-//}
-
 float getSign(float x) {
     if (x < 0) return -1;
     else return 1;
@@ -111,27 +95,14 @@ void RegisterClimbButton(RE::StaticFunctionTag *, int32_t dxcode) {
 
     
 }
+void RegisterClimbDelay(RE::StaticFunctionTag*, float delay) {
+    ButtonStates::debounceDelay = delay;
+    logger::info("Delay Registered {}", ButtonStates::debounceDelay);
+}
 
 bool IsClimbKeyDown(RE::StaticFunctionTag *) {
     return ButtonStates::isDown;
 }
-
-    //camera versus head 'to object angle'. Angle between the vectors 'camera to object' and 'player head to object'
-//float CameraVsHeadToObjectAngle(RE::NiPoint3 objPoint) {
-//    const auto player = RE::PlayerCharacter::GetSingleton();
-//
-//    RE::NiPoint3 playerToObject = objPoint - (player->GetPosition() + RE::NiPoint3(0, 0, 120));
-//
-//    playerToObject /= playerToObject.Length();
-//
-//    RE::NiPoint3 camDir = CameraDirInternal();
-//
-//    float dot = playerToObject.Dot(camDir);
-//
-//    const float radToDeg = (float)57.2958;
-//
-//    return acos(dot) * radToDeg;
-//}
 
 float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
     const auto player = RE::PlayerCharacter::GetSingleton();
@@ -239,36 +210,61 @@ float magnitudeXY(float x, float y) {
 bool PlayerIsGrounded() {
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    const auto playerPos = player->GetPosition();
+    //const auto playerPos = player->GetPosition();
 
-    RE::hkVector4 normalOut(0, 0, 0, 0);
+    //RE::hkVector4 normalOut(0, 0, 0, 0);
 
-    // grounded check
-    float groundedCheckDist = 128 + 20;
+    //// grounded check
+    //float groundedCheckDist = 128 + 20;
 
-    RE::NiPoint3 groundedRayStart;
-    groundedRayStart.x = playerPos.x;
-    groundedRayStart.y = playerPos.y;
-    groundedRayStart.z = playerPos.z + 128;
+    //RE::NiPoint3 groundedRayStart;
+    //groundedRayStart.x = playerPos.x;
+    //groundedRayStart.y = playerPos.y;
+    //groundedRayStart.z = playerPos.z + 128;
 
-    RE::NiPoint3 groundedRayDir(0, 0, -1);
+    //RE::NiPoint3 groundedRayDir(0, 0, -1);
 
-    float groundedRayDist = RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
+    //float groundedRayDist = RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
-    if (groundedRayDist == groundedCheckDist || groundedRayDist == -1) {
-        return false;
+    //if (groundedRayDist == groundedCheckDist || groundedRayDist == -1) {
+    //    return false;
+    //}
+
+    //return true;
+
+    if (player) {
+        if (const auto charController = player->GetCharController()) {
+            return !charController->flags.any(RE::CHARACTER_FLAGS::kJumping);
+        }
     }
 
     return true;
-
 }
 
 bool PlayerIsInWater() {
-
+    
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (auto actorState = player->IsSwimming()) {
-       return true;
+    const auto playerPos = player->GetPosition();
+
+    // temp water swimming fix
+    float waterLevel;
+    player->GetParentCell()->GetWaterHeight(playerPos, waterLevel);
+
+    if (playerPos.z - waterLevel < -50) {
+        return true;
     }
+
+    return false;
+}
+
+bool PlayerIsOnStairs(){
+    const auto player = RE::PlayerCharacter::GetSingleton();
+    if (player) {
+        if (const auto charController = player->GetCharController()) {
+            return charController->flags.any(RE::CHARACTER_FLAGS::kOnStairs);
+        }
+    }
+
     return false;
 }
 
@@ -277,7 +273,6 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
-    //const auto playerInInterior = player->GetParentCell()->IsInteriorCell();
 
     float startZOffset = 100 * PlayerScale;  // how high to start the raycast above the feet of the player
     float playerHeight = 120 * PlayerScale;  // how much headroom is needed
@@ -286,6 +281,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     float fwdCheck = 8; // how much each incremental forward check steps forward               // Default 10
     int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 12
     float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
+    float ledgeHypotenus = 0.75; // This prevents lowest level grab from triggering on inclined surfaces, larger means less strict. Above 1 has no meaning, never set 0     // Default 0.5
 
     RE::hkVector4 normalOut(0, 0, 0, 0);
 
@@ -378,15 +374,15 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
         float verticalDistance = abs(ledgePoint.z - playerPos.z);
 
-        // Check if horizontal distance is more than half of the vertical distance
-        if (horizontalDistance > floor(verticalDistance / 2)) { // this greatly prevents climbing into stairs while allowing low height grabs
-            //logger::info("Ledge too far H:{} V:{}", horizontalDistance, verticalDistance);
-            return -1;  // Cancel climb if too far horizontally
+        // Check if horizontal distance is more than  vertical distance
+        if (!PlayerIsOnStairs()) { 
+            if (horizontalDistance < verticalDistance * ledgeHypotenus) {
+                logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
+                return 5;
+            }
+            
         }
 
-        
-        logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
-        return 5;
     }
     return -1;
    
@@ -465,28 +461,23 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         
 
     }
-    /*if (!foundLanding && playerPos.z - ledgePoint.z > 0) {
-        return 5;
-    }
-    else*/ if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
+     if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
 
-        // Always cut off animation for smoother vaults, removed 4 in papyrus and replaced with 3 too
-        /*if (foundLandingHeight < -10) {
-            return 4;
-        }*/
         
-        // Calculate horizontal and vertical distances
-        float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
-        float verticalDistance = abs(ledgePoint.z - playerPos.z);
+        
+        //// Calculate horizontal and vertical distances
+        //float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
+        //float verticalDistance = abs(ledgePoint.z - playerPos.z);
 
-        // Check if horizontal distance is more than half of the vertical distance
-        if (horizontalDistance > floor(verticalDistance /** 3 / 4*/)) {
-            //logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
-            return -1;  // Cancel climb if too far horizontally
-        }
-        logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
-        return 3;
+        //// Check if horizontal distance is more than half of the vertical distance
+        //if (horizontalDistance > floor(verticalDistance /** 3 / 4*/)) {
+        //    //logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
+        //    return -1;  // Cancel climb if too far horizontally
+        //}
+        //logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
+        if (!PlayerIsOnStairs())
+            return 3;
         
         
     }
@@ -533,12 +524,13 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70, 40.5 * PlayerScale, 90 * PlayerScale);
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70 * PlayerScale,
+                                       std::min(40.5, 40.5 * PlayerScale), 90 * PlayerScale);
         
     }
 
     if (selectedLedgeType == -1 && enableLedges) {
-        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 30 * PlayerScale, 250 * PlayerScale);
+        selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 40 * PlayerScale, 250 * PlayerScale);
         
     }
 
@@ -651,6 +643,8 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
     vm->RegisterFunction("IsClimbKeyDown", "SkyClimbPapyrus", IsClimbKeyDown);
 
     vm->RegisterFunction("RegisterClimbButton", "SkyClimbPapyrus", RegisterClimbButton);
+
+    vm->RegisterFunction("RegisterClimbDelay", "SkyClimbPapyrus", RegisterClimbDelay);
 
     return true; 
 }
