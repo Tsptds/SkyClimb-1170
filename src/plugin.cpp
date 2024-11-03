@@ -210,34 +210,33 @@ float magnitudeXY(float x, float y) {
 bool PlayerIsGrounded() {
 
     const auto player = RE::PlayerCharacter::GetSingleton();
-    //const auto playerPos = player->GetPosition();
+    const auto playerPos = player->GetPosition();
 
-    //RE::hkVector4 normalOut(0, 0, 0, 0);
+    RE::hkVector4 normalOut(0, 0, 0, 0);
 
-    //// grounded check
-    //float groundedCheckDist = 128 + 20;
+    // grounded check
+    float groundedCheckDist = 128 + 20;
 
-    //RE::NiPoint3 groundedRayStart;
-    //groundedRayStart.x = playerPos.x;
-    //groundedRayStart.y = playerPos.y;
-    //groundedRayStart.z = playerPos.z + 128;
+    if (const auto charController = player->GetCharController()) {
+        
+        if (charController->flags.any(RE::CHARACTER_FLAGS::kJumping)) {
+            return false;
+        }
 
-    //RE::NiPoint3 groundedRayDir(0, 0, -1);
+        RE::NiPoint3 groundedRayStart;
+        groundedRayStart.x = playerPos.x;
+        groundedRayStart.y = playerPos.y;
+        groundedRayStart.z = playerPos.z + 128;
 
-    //float groundedRayDist = RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
+        RE::NiPoint3 groundedRayDir(0, 0, -1);
 
-    //if (groundedRayDist == groundedCheckDist || groundedRayDist == -1) {
-    //    return false;
-    //}
+        float groundedRayDist =
+            RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
-    //return true;
-
-    if (player) {
-        if (const auto charController = player->GetCharController()) {
-            return !charController->flags.any(RE::CHARACTER_FLAGS::kJumping);
+        if (groundedRayDist == groundedCheckDist || groundedRayDist == -1) {
+            return false;
         }
     }
-
     return true;
 }
 
@@ -363,21 +362,23 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 
     if (ledgePlayerDiff > 175 * PlayerScale) {
         //logger::info("Returned High Ledge");
+        //logger::info("Climbing High=> V:{}", ledgePlayerDiff);
         return 2;
     } else if (ledgePlayerDiff >= 120 * PlayerScale) {
         //logger::info("Returned Med Ledge");
+        //logger::info("Climbing Med=> V:{}", ledgePlayerDiff);
         return 1;
         
     } else {
         
         // Calculate horizontal and vertical distances
-        float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
-        float verticalDistance = abs(ledgePoint.z - playerPos.z);
+        double horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
+        double verticalDistance = abs(ledgePoint.z - playerPos.z);
 
         // Check if horizontal distance is more than  vertical distance
         if (!PlayerIsOnStairs()) { 
             if (horizontalDistance < verticalDistance * ledgeHypotenus) {
-                logger::info("Climbing=> H:{} V:{}", horizontalDistance, verticalDistance);
+                //logger::info("Climbing Low=> H:{} V:{}", horizontalDistance, verticalDistance);
                 return 5;
             }
             
@@ -525,7 +526,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     // Perform ledge check based on player direction
     if (enableVaulting) {
         selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70 * PlayerScale,
-                                       std::min(40.5, 40.5 * PlayerScale), 90 * PlayerScale);
+                                       static_cast<float>(std::min(40.5, 40.5 * PlayerScale)), 90 * PlayerScale);
         
     }
 

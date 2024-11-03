@@ -80,7 +80,7 @@ public:
         for (auto event = *a_event; event; event = event->next) {
             if (const auto buttonEvent = event->AsButtonEvent()) {
                 
-                auto dxScanCode = buttonEvent->GetIDCode();  // DX Scan Code
+                auto dxScanCode = static_cast<int32_t>(buttonEvent->GetIDCode());  // DX Scan Code
                 //logger::info("DX code : {}, Input Type: {}", dxScanCode, buttonEvent->GetDevice());
                 
                 // Unless there's a valid key code, don't check for inputs (Happens when papyrus calls SkyClimbPapyrus.RegisterClimbButton)
