@@ -251,7 +251,7 @@ function KeepClimbing()
 	
 	if climbStarted == false
 		;Actor playerRef = playerRef
-
+		bool wasSneaking = playerRef.IsSneaking()
 		;playerRef.SetAnimationVariableBool("bInJumpState", false)
 	
 		climbStarted = true
@@ -292,6 +292,9 @@ function KeepClimbing()
 		
 		while(playerRef.GetSitState() != 0)
 		endwhile
+		if wasSneaking
+			playerRef.StartSneaking()
+		endif
 		if ConsumeStamina
 			DamagePlayerStamina.Cast(playerRef, playerRef)
 		endif
