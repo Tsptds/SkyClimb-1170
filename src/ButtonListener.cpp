@@ -1,19 +1,6 @@
-//#include "RE/Skyrim.h"
-//#include "REL/Relocation.h"
-//#include "SKSE/API.h"
-
-
 
 bool logSwitch = false;
 
-
-
-//RE::INPUT_DEVICE::kKeyboard;  // 0
-//RE::INPUT_DEVICE::kMouse;     // 1
-//RE::INPUT_DEVICE::kGamepad;   // 2
-
-// Check if the event is from a keyboard and is a key press
-// if (buttonEvent->GetDevice() == RE::INPUT_DEVICE::kKeyboard && buttonEvent->IsDown())
 
 namespace ButtonStates {
     int32_t DXCODE = -1;
@@ -22,6 +9,20 @@ namespace ButtonStates {
     float debounceDelay = 0.0f;  // Set debounce delay
 
     std::unordered_map<int32_t, int32_t> xinputToCKMap = {
+        // Mouse
+        {2, 258},  // Mouse middle
+        {3, 259},  // M4
+        {4, 260},  // M5
+        // Not natively supported
+        //{5, 261},  // M6
+        //{6, 262},  // M7
+        //{7, 263},  // ? tf is 8th button
+
+        // These have no button up events, input gets stuck on wheel up down
+        //{8, 264},  // Wheel Up
+        //{9, 265},  // Wheel Down
+        
+        // Gamepad
         {0x0001, 266},  // DPAD_UP
         {0x0002, 267},  // DPAD_DOWN
         {0x0004, 268},  // DPAD_LEFT
@@ -38,11 +39,11 @@ namespace ButtonStates {
         {0x8000, 279}   // Y
     };
 
-    int32_t MapToGamepadIfPossible(int32_t dxcode) {
+    int32_t MapToCKIfPossible(int32_t dxcode) {
         
         auto it = xinputToCKMap.find(dxcode);
         if (it != xinputToCKMap.end()) {
-            logger::info("Gamepad input found, mapping {}", it->second);
+            logger::info("Alt. CK input found, mapping {}", it->second);
             return it->second;
         }
         return dxcode;  // Return default value if key not found
@@ -95,6 +96,14 @@ public:
                         logger::info("Gamepad: Xinput: {} -> CK Map: {}", dxScanCode, ckMapped);
                     dxScanCode = ckMapped;
                 }
+                else if (buttonEvent->GetDevice() == RE::INPUT_DEVICE::kMouse) {
+                    const auto ckMapped = ButtonStates::xinputToCKMap[dxScanCode];
+
+                    if (logSwitch) 
+                        logger::info("Mouse: Xinput: {} -> CK Map: {}", dxScanCode, ckMapped);
+                    dxScanCode = ckMapped;
+                }
+
                 if (dxScanCode != ButtonStates::DXCODE) continue;
 
                 // Continue if there's a defined dxcode 

@@ -51,8 +51,8 @@ event OnOptionKeyMapChange(int option, int keyCode, string conflictControl, stri
 
 		if (continue)
 			sc.ClimbKey = keyCode
-			;sc.UnregisterForAllKeys()
-			;sc.RegisterForKey(sc.ClimbKey)
+			sc.UnregisterForAllKeys()
+			sc.RegisterForKey(sc.ClimbKey)
 			SkyClimbPapyrus.RegisterClimbButton(sc.ClimbKey)
 			SetKeyMapOptionValue(climbKeyOption, sc.ClimbKey)
 		endIf
@@ -64,14 +64,14 @@ event OnOptionSelect(int option)
 	if (option == useJumpKeyOption)
 		sc.UseJumpKey = !sc.UseJumpKey
 		sc.UpdateRefs()
-		;sc.UnregisterForAllKeys()
+		sc.UnregisterForAllKeys()
 		
 		if sc.UseJumpKey == false
 			SkyClimbPapyrus.ToggleJumping(true)
-			;sc.RegisterForKey(sc.ClimbKey)
+			sc.RegisterForKey(sc.ClimbKey)
 			SkyClimbPapyrus.RegisterClimbButton(sc.ClimbKey)
 		else
-			; sc.RegisterForKey(Input.GetMappedKey("Jump"))
+			sc.RegisterForKey(Input.GetMappedKey("Jump"))
 			SkyClimbPapyrus.RegisterClimbButton(Input.GetMappedKey("Jump"))
 		endif
 		SetToggleOptionValue(option, sc.UseJumpKey)

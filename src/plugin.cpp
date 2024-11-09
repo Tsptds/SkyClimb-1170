@@ -88,7 +88,7 @@ void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
 
 void RegisterClimbButton(RE::StaticFunctionTag *, int32_t dxcode) {
     
-    const auto mappedButton = ButtonStates::MapToGamepadIfPossible(dxcode);
+    const auto mappedButton = ButtonStates::MapToCKIfPossible(dxcode);
 
     ButtonStates::DXCODE = mappedButton;
     logger::info("Climb key registered: {}", mappedButton);
@@ -175,7 +175,7 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
             case RE::COL_LAYER::kTerrain:
             case RE::COL_LAYER::kGround:
             case RE::COL_LAYER::kProps:
-            case RE::COL_LAYER::kClutter:
+            //case RE::COL_LAYER::kClutter:
 
                 // update last hit collision object to check later
                 LastObjectHitType(static_cast<RE::COL_LAYER>(layerIndex));
@@ -198,6 +198,67 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
     return maxDist;
 }
 
+float RayCastVault(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut) {
+    
+    RE::NiPoint3 rayEnd = rayStart + rayDir * maxDist;
+
+    const auto bhkWorld = RE::PlayerCharacter::GetSingleton()->GetParentCell()->GetbhkWorld();
+    if (!bhkWorld) {
+        return maxDist;
+    }
+
+    RE::bhkPickData pickData;
+
+    const auto havokWorldScale = RE::bhkWorld::GetWorldScale();
+
+    pickData.rayInput.from = rayStart * havokWorldScale;
+    pickData.rayInput.to = rayEnd * havokWorldScale;
+    pickData.rayInput.enableShapeCollectionFilter = false;
+
+    const auto player = RE::PlayerCharacter::GetSingleton();
+    uint32_t collisionFilterInfo = 0;
+    player->GetCollisionFilterInfo(collisionFilterInfo);
+    pickData.rayInput.filterInfo = (static_cast<uint32_t>(collisionFilterInfo >> 16) << 16) | static_cast<uint32_t>(RE::COL_LAYER::kCharController);
+
+    if (bhkWorld->PickObject(pickData); pickData.rayOutput.HasHit()) {
+        normalOut = pickData.rayOutput.normal;
+
+        uint32_t layerIndex = pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F;
+
+        if (!layerIndex) {
+            return -1;
+        }
+
+        if (logLayer) logger::info("\nlayer hit: {}", layerIndex);
+
+        // fail if hit a character
+        switch (static_cast<RE::COL_LAYER>(layerIndex)) {
+            case RE::COL_LAYER::kStatic:
+            case RE::COL_LAYER::kCollisionBox:
+            case RE::COL_LAYER::kTerrain:
+            case RE::COL_LAYER::kGround:
+            case RE::COL_LAYER::kProps:
+            //case RE::COL_LAYER::kClutter:
+
+                // update last hit collision object to check later
+                LastObjectHitType(static_cast<RE::COL_LAYER>(layerIndex));
+                // hit something useful!
+                return maxDist * pickData.rayOutput.hitFraction;
+
+            default: {
+                return -1;
+
+            } break;
+        }
+    }
+
+    if (logLayer) logger::info("nothing hit");
+
+    normalOut = RE::hkVector4(0, 0, 0, 0);
+
+    // didn't hit anything!
+    return maxDist;
+}
 
 float magnitudeXY(float x, float y) {
 
@@ -403,9 +464,9 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     fwdRayStart.y = playerPos.y;
     fwdRayStart.z = playerPos.z + headHeight;
 
-    float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
+    float fwdRayDist = RayCastVault(fwdRayStart, checkDir, vaultLength, normalOut);
 
-    if (fwdRayDist < vaultLength && lastHitObject == RE::COL_LAYER::kTerrain) {
+    if (fwdRayDist < vaultLength || lastHitObject == RE::COL_LAYER::kTerrain) {
         return -1;
     }
 
@@ -413,7 +474,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 2) + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with a z offset, and a starting offset
 
     // Check for any object within a small distance behind the vaultable object
-    float backwardRayDist = RayCast(backwardRayStart, checkDir, 50.0f, normalOut, RE::COL_LAYER::kLOS);
+    float backwardRayDist = RayCastVault(backwardRayStart, checkDir, 50.0f, normalOut);
     if (backwardRayDist < 50.0f && backwardRayDist > 0) {
         // An object was found behind the vaultable surface, so cancel the vault
         return -1;
@@ -437,7 +498,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         downRayStart.z = fwdRayStart.z;
 
 
-        float downRayDist = RayCast(downRayStart, downRayDir, headHeight + 100, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
+        float downRayDist = RayCastVault(downRayStart, downRayDir, headHeight + 100, normalOut);
 
         float hitHeight = (fwdRayStart.z - downRayDist) - playerPos.z;
 
@@ -493,7 +554,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
-                  float backwardOffset = 55.0f * PlayerScale) {
+                  float backwardOffset = std::min(56.5f, 56.5f * PlayerScale)) {
     
     // Nullptr check
     if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !grabMarkerRef) {

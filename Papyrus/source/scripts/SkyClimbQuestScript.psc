@@ -50,8 +50,10 @@ function Maintenance()
 	
 	If UseJumpKey
 		SkyClimbPapyrus.RegisterClimbButton(Input.GetMappedKey("Jump"))
+		RegisterForKey(Input.GetMappedKey("Jump")) ; jump
 	Else
 		SkyClimbPapyrus.RegisterClimbButton(ClimbKey)
+		RegisterForKey(ClimbKey)
 	EndIf
 
 	SkyClimbPapyrus.RegisterClimbDelay(ButtonDelay)
@@ -142,7 +144,7 @@ State NewGame
 				indicatorRef.Disable()
 			endif
 			;SkyClimbPapyrus.ToggleJumping(true)
-			RegisterForSingleUpdate(0.01)
+			RegisterForSingleUpdate(0.05)
 			return
 		endif
 
@@ -169,7 +171,7 @@ State AfterFirstLoad
 				indicatorRef.Disable()
 			endif
 			;SkyClimbPapyrus.ToggleJumping(true)
-			RegisterForSingleUpdate(0.01)
+			RegisterForSingleUpdate(0.05)
 			return
 		endif
 		; Since we're in the open world the moment game loads, I only do polling in maintenance and not every update unlike new game, ffs Creation kit
@@ -186,9 +188,11 @@ endstate
 ; 	holdingKey = false
 ; EndEvent
 
-; Event OnKeyDown(Int KeyCode)
-; 	holdingKey = true
-; EndEvent
+Event OnKeyDown(Int KeyCode)
+	;holdingKey = true
+	UnregisterForUpdate()
+	CheckStates()
+EndEvent
 
 function CheckStates()
 	if !climbStarted
@@ -236,7 +240,7 @@ function CheckStates()
 	else
 		couldParkourLastFrame = false
 	endif
-	RegisterForSingleUpdate(0.01)
+	RegisterForSingleUpdate(0.05)
 EndFunction
 
 function KeepClimbing()
