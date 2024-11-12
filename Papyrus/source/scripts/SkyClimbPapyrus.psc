@@ -13,3 +13,5 @@ function RegisterClimbButton(int DXScanCode) global native
 function RegisterClimbDelay(float delay) global native
 
 bool function IsClimbKeyDown() global native
+
+bool function IsParkourActive() global native

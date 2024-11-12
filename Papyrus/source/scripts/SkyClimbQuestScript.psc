@@ -69,11 +69,11 @@ endFunction
 ; 	Debug.MessageBox("Location Change")
 ; EndEvent
 
-bool function ParkourActive()
-	;return playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
-	return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
-	
-endFunction
+;bool function ParkourActive()
+;	;return playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false ;&& vaultMarkerRef.IsFurnitureInUse() == false && medMarkerRef.IsFurnitureInUse() == false && highMarkerRef.IsFurnitureInUse() == false
+;	return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
+;	
+;endFunction
 
 function UpdateRefs()
 	;Debug.Notification("Updating Refs")
@@ -138,7 +138,7 @@ endFunction
 State NewGame
 	Event OnUpdate()
 
-		if !ParkourActive()
+		if !SkyClimbPapyrus.IsParkourActive()
 			if canParkour
 				canParkour = false
 				indicatorRef.Disable()
@@ -165,7 +165,7 @@ State AfterFirstLoad
 	
 	Event OnUpdate()
 
-		if !ParkourActive()
+		if !SkyClimbPapyrus.IsParkourActive()
 			if canParkour
 				canParkour = false
 				indicatorRef.Disable()
@@ -195,11 +195,11 @@ Event OnKeyDown(Int KeyCode)
 EndEvent
 
 function CheckStates()
+	holdingKey = SkyClimbPapyrus.IsClimbKeyDown()
 	if !climbStarted
-		holdingKey = SkyClimbPapyrus.IsClimbKeyDown()
 		parkourType = SkyClimbPapyrus.UpdateParkourPoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, UseJumpKey, EnableVaulting, EnableLedges, grabMarkerRef)
 	
-		if parkourType >= 0
+		if parkourType >= 0 && SkyClimbPapyrus.IsParkourActive()
 			
 			if canParkour == false
 				canParkour = true
@@ -251,7 +251,7 @@ function KeepClimbing()
 	
 	if climbStarted == false
 		;Actor playerRef = playerRef
-		bool wasSneaking = playerRef.IsSneaking()
+		wasSneaking = playerRef.IsSneaking()
 		;playerRef.SetAnimationVariableBool("bInJumpState", false)
 	
 		climbStarted = true
@@ -334,5 +334,6 @@ Int Property ClimbKey Auto
 
 float Property StaminaDamage auto
 float Property ButtonDelay auto
+Bool Property wasSneaking auto
 
 Spell Property DamagePlayerStamina auto
