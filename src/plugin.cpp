@@ -155,10 +155,12 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
     pickData.rayInput.to = rayEnd * havokWorldScale;
     //pickData.rayInput.enableShapeCollectionFilter = false;
     //pickData.rayInput.filterInfo = RE::bhkCollisionFilter::GetSingleton()->GetNewSystemGroup() << 16 | SKSE::stl::to_underlying(layerMask);
+    
+    // Pass player collision to filter it out, ONLY PLAYER
     const auto player = RE::PlayerCharacter::GetSingleton();
     uint32_t collisionFilterInfo = 0;
     player->GetCollisionFilterInfo(collisionFilterInfo);
-    pickData.rayInput.filterInfo = (static_cast<uint32_t>(collisionFilterInfo >> 16) << 16) | static_cast<uint32_t>(RE::COL_LAYER::kLOS);
+    pickData.rayInput.filterInfo = (static_cast<uint32_t>(collisionFilterInfo >> 16) << 16) | static_cast<uint32_t>(layerMask);
 
     if (bhkWorld->PickObject(pickData); pickData.rayOutput.HasHit()) {
 
@@ -199,68 +201,6 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
     normalOut = RE::hkVector4(0, 0, 0, 0);
 
     //didn't hit anything!
-    return maxDist;
-}
-
-float RayCastVault(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut) {
-    
-    RE::NiPoint3 rayEnd = rayStart + rayDir * maxDist;
-
-    const auto bhkWorld = RE::PlayerCharacter::GetSingleton()->GetParentCell()->GetbhkWorld();
-    if (!bhkWorld) {
-        return maxDist;
-    }
-
-    RE::bhkPickData pickData;
-
-    const auto havokWorldScale = RE::bhkWorld::GetWorldScale();
-
-    pickData.rayInput.from = rayStart * havokWorldScale;
-    pickData.rayInput.to = rayEnd * havokWorldScale;
-    pickData.rayInput.enableShapeCollectionFilter = false;
-
-    const auto player = RE::PlayerCharacter::GetSingleton();
-    uint32_t collisionFilterInfo = 0;
-    player->GetCollisionFilterInfo(collisionFilterInfo);
-    pickData.rayInput.filterInfo = (static_cast<uint32_t>(collisionFilterInfo >> 16) << 16) | static_cast<uint32_t>(RE::COL_LAYER::kCharController);
-
-    if (bhkWorld->PickObject(pickData); pickData.rayOutput.HasHit()) {
-        normalOut = pickData.rayOutput.normal;
-
-        uint32_t layerIndex = pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F;
-
-        if (!layerIndex) {
-            return -1;
-        }
-
-        if (logLayer) logger::info("\nlayer hit: {}", layerIndex);
-
-        // fail if hit a character
-        switch (static_cast<RE::COL_LAYER>(layerIndex)) {
-            case RE::COL_LAYER::kStatic:
-            case RE::COL_LAYER::kCollisionBox:
-            case RE::COL_LAYER::kTerrain:
-            case RE::COL_LAYER::kGround:
-            case RE::COL_LAYER::kProps:
-            //case RE::COL_LAYER::kClutter:
-
-                // update last hit collision object to check later
-                LastObjectHitType(static_cast<RE::COL_LAYER>(layerIndex));
-                // hit something useful!
-                return maxDist * pickData.rayOutput.hitFraction;
-
-            default: {
-                return -1;
-
-            } break;
-        }
-    }
-
-    if (logLayer) logger::info("nothing hit");
-
-    normalOut = RE::hkVector4(0, 0, 0, 0);
-
-    // didn't hit anything!
     return maxDist;
 }
 
@@ -338,14 +278,14 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
-    float startZOffset = 50 * PlayerScale;  // how high to start the raycast above the feet of the player
+    float startZOffset = 100 * PlayerScale;  // how high to start the raycast above the feet of the player
     float playerHeight = 120 * PlayerScale;  // how much headroom is needed
     float minUpCheck = 100 * PlayerScale;    // how low can the roof be relative to the raycast starting point?
     float maxUpCheck = (maxLedgeHeight - startZOffset) + 20 * PlayerScale;  // how high do we even check for a roof?
-    float fwdCheck = 5 * PlayerScale; // how much each incremental forward check steps forward               // Default 10
-    int fwdCheckIterations = 24;  // how many incremental forward checks do we make?            // Default 12
+    float fwdCheck = 8 * PlayerScale; // how much each incremental forward check steps forward               // Default 8
+    int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 15
     float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
-    float ledgeHypotenus = 0.75; // This prevents lowest level grab from triggering on inclined surfaces, larger means less strict. Above 1 has no meaning, never set 0     // Default 0.5
+    float ledgeHypotenus = 0.75; // This prevents lowest level grab from triggering on inclined surfaces, larger means less strict. Above 1 has no meaning, never set 0     // Default 0.75
 
     RE::hkVector4 normalOut(0, 0, 0, 0);
 
@@ -381,7 +321,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         float fwdRayDist = RayCast(fwdRayStart, checkDir, fwdCheck * (float)i, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
         if (fwdRayDist < fwdCheck * (float)i) {
-            logger::info("fwdRayDist {} < fwdCheck {}", fwdRayDist, fwdCheck * (float)i);
+            //logger::info("fwdRayDist {} < fwdCheck {}", fwdRayDist, fwdCheck * (float)i);
             continue;
         }
 
@@ -400,7 +340,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         // increment forward again
         if (ledgePoint.z < playerPos.z + minLedgeHeight || ledgePoint.z > playerPos.z + maxLedgeHeight ||
             downRayDist < 10 || normalZ < minLedgeFlatness) {
-            logger::info("{} {} {} {}", ledgePoint.z < playerPos.z + minLedgeHeight, ledgePoint.z > playerPos.z + maxLedgeHeight, downRayDist < 10, normalZ < minLedgeFlatness);
+            //logger::info("{} {} {} {}", ledgePoint.z < playerPos.z + minLedgeHeight, ledgePoint.z > playerPos.z + maxLedgeHeight, downRayDist < 10, normalZ < minLedgeFlatness);
             continue;
         } else {
             foundLedge = true;
@@ -425,15 +365,15 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     }
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
 
-    /*if (logLayer)*/ logger::info("**************\nLedge - player {}", ledgePlayerDiff);
-    /*if (logLayer)*/ logger::info("Flatness {}", normalZ);
+    if (logLayer) logger::info("**************\nLedge - player {}", ledgePlayerDiff);
+    if (logLayer) logger::info("Flatness {}", normalZ);
 
     if (ledgePlayerDiff > 175 * PlayerScale) {
-        logger::info("Returned High Ledge");
+        //logger::info("Returned High Ledge");
         //logger::info("Climbing High=> V:{}", ledgePlayerDiff);
         return 2;
     } else if (ledgePlayerDiff >= 120 * PlayerScale) {
-        logger::info("Returned Med Ledge");
+        //logger::info("Returned Med Ledge");
         //logger::info("Climbing Med=> V:{}", ledgePlayerDiff);
         return 1;
         
@@ -447,7 +387,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         if (!PlayerIsOnStairs()) { 
             if (horizontalDistance < verticalDistance * ledgeHypotenus) {
                 //logger::info("Climbing Low=> H:{} V:{}", horizontalDistance, verticalDistance);
-                logger::info("Returned low ledge");
+                //logger::info("Returned low ledge");
                 return 5;
             }
             
@@ -472,7 +412,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     fwdRayStart.y = playerPos.y;
     fwdRayStart.z = playerPos.z + headHeight;
 
-    float fwdRayDist = RayCastVault(fwdRayStart, checkDir, vaultLength, normalOut);
+    float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, RE::COL_LAYER::kLOS);
 
     if (fwdRayDist < vaultLength || lastHitObject == RE::COL_LAYER::kTerrain) {
         return -1;
@@ -482,7 +422,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
     RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 2) + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with a z offset, and a starting offset
 
     // Check for any object within a small distance behind the vaultable object
-    float backwardRayDist = RayCastVault(backwardRayStart, checkDir, 50.0f, normalOut);
+    float backwardRayDist = RayCast(backwardRayStart, checkDir, 50.0f, normalOut, RE::COL_LAYER::kLOS);
     if (backwardRayDist < 50.0f && backwardRayDist > 0) {
         // An object was found behind the vaultable surface, so cancel the vault
         return -1;
@@ -506,7 +446,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         downRayStart.z = fwdRayStart.z;
 
 
-        float downRayDist = RayCastVault(downRayStart, downRayDir, headHeight + 100, normalOut);
+        float downRayDist = RayCast(downRayStart, downRayDir, headHeight + 100, normalOut, RE::COL_LAYER::kLOS);
 
         float hitHeight = (fwdRayStart.z - downRayDist) - playerPos.z;
 
@@ -547,7 +487,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         //}
         //logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
         if (!PlayerIsOnStairs())
-            logger::info("Returned Vault");
+            //logger::info("Returned Vault");
             return 3;
         
         
@@ -611,7 +551,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // If player's direction is too far away from the ledge point
     if (PlayerVsObjectAngle(ledgePoint) > 80) {
-        logger::info("Player is too far away from ledge");
+        //logger::info("Player is too far away from ledge");
         return -1;
     }
 
@@ -695,8 +635,8 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
         }
     }
     if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-        // ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
-        logger::info("Grounded {} In Water {}", PlayerIsGrounded(), PlayerIsInWater());
+        ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
+        //logger::info("Grounded {} In Water {}", PlayerIsGrounded(), PlayerIsInWater());
         return -1;
     }
     return foundLedgeType;
@@ -745,7 +685,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface *a_s
     SetupLog();
 
     SKSE::Init(a_skse);
-    logger::info("SkyClimb Papyrus Started!");
+    logger::info("Initializing SkyParkour");
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions); 
     SKSE::GetMessagingInterface()->RegisterListener(MessageEvent);
     
