@@ -103,6 +103,15 @@ void RegisterClimbDelay(RE::StaticFunctionTag*, float delay) {
 bool IsClimbKeyDown(RE::StaticFunctionTag *) {
     return ButtonStates::isDown;
 }
+bool IsParkourActive(RE::StaticFunctionTag *) {
+    auto player = RE::PlayerCharacter::GetSingleton();
+    if (!player) return false;
+    
+    //return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
+    return player->GetSitSleepState() == RE::SIT_SLEEP_STATE::kNormal &&
+           RE::UI::GetSingleton()->GameIsPaused() == false && player->IsWeaponDrawn() == false;
+}
+
 
 float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
     const auto player = RE::PlayerCharacter::GetSingleton();
@@ -657,6 +666,8 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
     vm->RegisterFunction("RegisterClimbButton", "SkyClimbPapyrus", RegisterClimbButton);
 
     vm->RegisterFunction("RegisterClimbDelay", "SkyClimbPapyrus", RegisterClimbDelay);
+
+    vm->RegisterFunction("IsParkourActive", "SkyClimbPapyrus", IsParkourActive);
 
     return true; 
 }
