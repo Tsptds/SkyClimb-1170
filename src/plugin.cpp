@@ -153,8 +153,12 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
 
     pickData.rayInput.from = rayStart * havokWorldScale;
     pickData.rayInput.to = rayEnd * havokWorldScale;
-    pickData.rayInput.enableShapeCollectionFilter = false;
-    pickData.rayInput.filterInfo = RE::bhkCollisionFilter::GetSingleton()->GetNewSystemGroup() << 16 | SKSE::stl::to_underlying(layerMask);
+    //pickData.rayInput.enableShapeCollectionFilter = false;
+    //pickData.rayInput.filterInfo = RE::bhkCollisionFilter::GetSingleton()->GetNewSystemGroup() << 16 | SKSE::stl::to_underlying(layerMask);
+    const auto player = RE::PlayerCharacter::GetSingleton();
+    uint32_t collisionFilterInfo = 0;
+    player->GetCollisionFilterInfo(collisionFilterInfo);
+    pickData.rayInput.filterInfo = (static_cast<uint32_t>(collisionFilterInfo >> 16) << 16) | static_cast<uint32_t>(RE::COL_LAYER::kLOS);
 
     if (bhkWorld->PickObject(pickData); pickData.rayOutput.HasHit()) {
 
@@ -176,7 +180,7 @@ float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkV
             case RE::COL_LAYER::kGround:
             case RE::COL_LAYER::kProps:
             //case RE::COL_LAYER::kClutter:
-
+  
                 // update last hit collision object to check later
                 LastObjectHitType(static_cast<RE::COL_LAYER>(layerIndex));
                 // hit something useful!
@@ -334,12 +338,12 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
-    float startZOffset = 100 * PlayerScale;  // how high to start the raycast above the feet of the player
+    float startZOffset = 50 * PlayerScale;  // how high to start the raycast above the feet of the player
     float playerHeight = 120 * PlayerScale;  // how much headroom is needed
     float minUpCheck = 100 * PlayerScale;    // how low can the roof be relative to the raycast starting point?
     float maxUpCheck = (maxLedgeHeight - startZOffset) + 20 * PlayerScale;  // how high do we even check for a roof?
-    float fwdCheck = 8; // how much each incremental forward check steps forward               // Default 10
-    int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 12
+    float fwdCheck = 5 * PlayerScale; // how much each incremental forward check steps forward               // Default 10
+    int fwdCheckIterations = 24;  // how many incremental forward checks do we make?            // Default 12
     float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
     float ledgeHypotenus = 0.75; // This prevents lowest level grab from triggering on inclined surfaces, larger means less strict. Above 1 has no meaning, never set 0     // Default 0.5
 
@@ -356,6 +360,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     float upRayDist = RayCast(upRayStart, upRayDir, maxUpCheck, normalOut,/* false,*/ RE::COL_LAYER::kLOS);
 
     if (upRayDist < minUpCheck) {
+        logger::info("upRayDist {} < minUpCheck {}", upRayDist, minUpCheck);
         return -1;
     }
 
@@ -376,6 +381,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         float fwdRayDist = RayCast(fwdRayStart, checkDir, fwdCheck * (float)i, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
 
         if (fwdRayDist < fwdCheck * (float)i) {
+            logger::info("fwdRayDist {} < fwdCheck {}", fwdRayDist, fwdCheck * (float)i);
             continue;
         }
 
@@ -394,6 +400,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         // increment forward again
         if (ledgePoint.z < playerPos.z + minLedgeHeight || ledgePoint.z > playerPos.z + maxLedgeHeight ||
             downRayDist < 10 || normalZ < minLedgeFlatness) {
+            logger::info("{} {} {} {}", ledgePoint.z < playerPos.z + minLedgeHeight, ledgePoint.z > playerPos.z + maxLedgeHeight, downRayDist < 10, normalZ < minLedgeFlatness);
             continue;
         } else {
             foundLedge = true;
@@ -418,15 +425,15 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     }
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
 
-    if (logLayer) logger::info("**************\nLedge - player {}", ledgePlayerDiff);
-    if (logLayer) logger::info("Flatness {}", normalZ);
+    /*if (logLayer)*/ logger::info("**************\nLedge - player {}", ledgePlayerDiff);
+    /*if (logLayer)*/ logger::info("Flatness {}", normalZ);
 
     if (ledgePlayerDiff > 175 * PlayerScale) {
-        //logger::info("Returned High Ledge");
+        logger::info("Returned High Ledge");
         //logger::info("Climbing High=> V:{}", ledgePlayerDiff);
         return 2;
     } else if (ledgePlayerDiff >= 120 * PlayerScale) {
-        //logger::info("Returned Med Ledge");
+        logger::info("Returned Med Ledge");
         //logger::info("Climbing Med=> V:{}", ledgePlayerDiff);
         return 1;
         
@@ -435,11 +442,12 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
         // Calculate horizontal and vertical distances
         double horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
         double verticalDistance = abs(ledgePoint.z - playerPos.z);
-
+        
         // Check if horizontal distance is more than  vertical distance
         if (!PlayerIsOnStairs()) { 
             if (horizontalDistance < verticalDistance * ledgeHypotenus) {
                 //logger::info("Climbing Low=> H:{} V:{}", horizontalDistance, verticalDistance);
+                logger::info("Returned low ledge");
                 return 5;
             }
             
@@ -539,6 +547,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
         //}
         //logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
         if (!PlayerIsOnStairs())
+            logger::info("Returned Vault");
             return 3;
         
         
@@ -554,7 +563,7 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
                   RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
-                  float backwardOffset = std::min(56.5f, 56.5f * PlayerScale)) {
+                  float backwardOffset = 55.0f) {
     
     // Nullptr check
     if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !grabMarkerRef) {
@@ -586,7 +595,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 130, 70 * PlayerScale,
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 120, 70 * PlayerScale,
                                        static_cast<float>(std::min(40.5, 40.5 * PlayerScale)), 90 * PlayerScale);
         
     }
@@ -602,7 +611,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
     // If player's direction is too far away from the ledge point
     if (PlayerVsObjectAngle(ledgePoint) > 80) {
-        //logger::info("Player is too far away from ledge");
+        logger::info("Player is too far away from ledge");
         return -1;
     }
 
@@ -615,7 +624,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     }
 
     // Position the indicator above the ledge point, with an offset backward
-    RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset;
+    RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset * PlayerScale;
     indicatorRef->data.location = ledgePoint /*- backwardAdjustment */+ RE::NiPoint3(0, 0, 5);
     indicatorRef->Update3DPosition(true);
     indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
@@ -687,6 +696,7 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
     }
     if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
         // ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
+        logger::info("Grounded {} In Water {}", PlayerIsGrounded(), PlayerIsInWater());
         return -1;
     }
     return foundLedgeType;
