@@ -309,7 +309,7 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
     float upRayDist = RayCast(upRayStart, upRayDir, maxUpCheck, normalOut,/* false,*/ RE::COL_LAYER::kLOS);
 
     if (upRayDist < minUpCheck) {
-        logger::info("upRayDist {} < minUpCheck {}", upRayDist, minUpCheck);
+        //logger::info("upRayDist {} < minUpCheck {}", upRayDist, minUpCheck);
         return -1;
     }
 
