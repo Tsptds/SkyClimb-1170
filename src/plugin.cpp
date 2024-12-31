@@ -109,7 +109,7 @@ bool IsParkourActive(RE::StaticFunctionTag *) {
     
     //return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
     return player->GetSitSleepState() == RE::SIT_SLEEP_STATE::kNormal &&
-           RE::UI::GetSingleton()->GameIsPaused() == false && player->IsWeaponDrawn() == false;
+           RE::UI::GetSingleton()->GameIsPaused() == false /*&& player->IsWeaponDrawn() == false*/;
 }
 
 
@@ -510,14 +510,9 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 
 
-int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
-                  RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
-                  float backwardOffset = 55.0f) {
+int GetLedgePoint(bool enableVaulting, bool enableLedges/*, float backwardOffset = 55.0f*/) {
     
-    // Nullptr check
-    if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !grabMarkerRef) {
-        return -1;
-    }
+       
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
@@ -564,61 +559,10 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
         return -1;
     }
 
-    // Rotate to face the player's forward direction
-    float zAngle = atan2(playerDirFlat.x, playerDirFlat.y);
+    //// Rotate to face the player's forward direction
+    //float zAngle = atan2(playerDirFlat.x, playerDirFlat.y);
 
-    // Move the indicator to the player position if needed
-    if (indicatorRef->GetParentCell() != player->GetParentCell()) {
-        indicatorRef->MoveTo(player->AsReference());
-    }
-
-    // Position the indicator above the ledge point, with an offset backward
-    RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset * PlayerScale;
-    indicatorRef->data.location = ledgePoint /*- backwardAdjustment */+ RE::NiPoint3(0, 0, 5);
-    indicatorRef->Update3DPosition(true);
-    indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
-
-    RE::TESObjectREFR *ledgeMarker;
-    float zAdjust;
-    //zAdjust = ceil(playerPos.z - ledgePoint.z);
-
-    // ledge  grab
-    if (selectedLedgeType == 5) {
-        //logger::info("Selected Grab Ledge");
-        ledgeMarker = grabMarkerRef;
-        zAdjust = -80 * PlayerScale;
-        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50 * PlayerScale;     // 50 is fine for this
-    }
-    // Select ledge type
-    else if (selectedLedgeType == 1) {
-        //logger::info("Selected Med Ledge");
-        ledgeMarker = medMarkerRef;
-        zAdjust = -155 * PlayerScale;
-    } else if (selectedLedgeType == 2) {
-        //logger::info("Selected High Ledge");
-        ledgeMarker = highMarkerRef;
-        zAdjust = -200 * PlayerScale;
-    } else {
-        //logger::info("Selected Vault");
-        ledgeMarker = vaultMarkerRef;
-        zAdjust = -60 * PlayerScale;  // default -60
-    }
-
-
-    // Adjust the ledge marker for correct positioning, applying the backward offset
-    RE::NiPoint3 adjustedPos;
-    adjustedPos.x = ledgePoint.x + playerDirFlat.x - backwardAdjustment.x;
-    adjustedPos.y = ledgePoint.y + playerDirFlat.y - backwardAdjustment.y;
-    adjustedPos.z = ledgePoint.z + zAdjust;
-
-    if (!ledgeMarker) return -1;
-
-    if (ledgeMarker->GetParentCell() != player->GetParentCell()) {
-        ledgeMarker->MoveTo(player->AsReference());
-    }
-
-    ledgeMarker->SetPosition(adjustedPos);
-    ledgeMarker->data.angle = RE::NiPoint3(0, 0, zAngle);
+    
     
 
     return selectedLedgeType;
@@ -626,29 +570,34 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
 
 
-int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef,
-                       RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey,
-                       bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
+void UpdateParkourPoint(RE::StaticFunctionTag*, bool useJumpKey, bool enableVaulting, bool enableLedges) {
     
    
     PlayerScale = GetScale();
 
-    int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
+    int foundLedgeType = GetLedgePoint(enableVaulting, enableLedges);
     
 
-    if (useJumpKey) {
+    /*if (useJumpKey) {
         if (foundLedgeType >= 0) {
             ToggleJumpingInternal(false);
         } else {
             ToggleJumpingInternal(true);
         }
+    }*/
+    //if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
+    //    ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
+    //    //logger::info("Grounded {} In Water {}", PlayerIsGrounded(), PlayerIsInWater());
+    //    return -1;
+    //}
+    logger::info(" Ledge Type: {}", foundLedgeType);
+    if (foundLedgeType >= 0 && ButtonStates::isDown) {
+        auto player = RE::PlayerCharacter::GetSingleton();
+
+        //player->NotifyAnimationGraph("JumpLand");
+        player->NotifyAnimationGraph("JumpLandEnd");
+        player->NotifyAnimationGraph("IdleLeverPushStart");
     }
-    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-        ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
-        //logger::info("Grounded {} In Water {}", PlayerIsGrounded(), PlayerIsInWater());
-        return -1;
-    }
-    return foundLedgeType;
 }
 
 
