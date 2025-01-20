@@ -150,7 +150,7 @@ bool IsParkourActive(RE::StaticFunctionTag *) {
             ui->IsMenuOpen(RE::TweenMenu::MENU_NAME) == false;
             
 
-            // HUD and some stuff are still considered UI so these aren't viable
+            // HUD and some stuff are still considered UI so these aren't viable, unfortunate
             //ui->IsShowingMenus() == false;
             //ui->menuStack.empty() == true;
 }

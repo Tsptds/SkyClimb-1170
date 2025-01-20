@@ -114,7 +114,7 @@ public:
                                      buttonEvent->GetDevice());
                     }
                     // if button is held down more than x seconds
-                    if (buttonEvent->IsPressed()) {
+                    if (buttonEvent->IsPressed() || buttonEvent->IsDown()) {
                         if (ButtonStates::lastKeyDownTime + ButtonStates::debounceDelay <=
                             buttonEvent->HeldDuration()) {
                             ButtonStates::isDown = true;
@@ -124,7 +124,7 @@ public:
                         
                     }
                     // immediately let go off the button
-                    else if (!buttonEvent->IsHeld()) {
+                    else /*if (!buttonEvent->IsHeld())*/ {
                         ButtonStates::isDown = false;
                         ButtonStates::lastKeyDownTime = 0.0f;  // Reset time on release
 
