@@ -124,7 +124,7 @@ public:
                         
                     }
                     // immediately let go off the button
-                    if (buttonEvent->IsUp()) {
+                    else if (!buttonEvent->IsHeld()) {
                         ButtonStates::isDown = false;
                         ButtonStates::lastKeyDownTime = 0.0f;  // Reset time on release
 
