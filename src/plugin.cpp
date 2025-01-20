@@ -103,13 +103,56 @@ void RegisterClimbDelay(RE::StaticFunctionTag*, float delay) {
 bool IsClimbKeyDown(RE::StaticFunctionTag *) {
     return ButtonStates::isDown;
 }
+
 bool IsParkourActive(RE::StaticFunctionTag *) {
     auto player = RE::PlayerCharacter::GetSingleton();
-    if (!player) return false;
-    
+    auto ui = RE::UI::GetSingleton();
+    if (!player || !ui) return false;
+
     //return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
     return player->GetSitSleepState() == RE::SIT_SLEEP_STATE::kNormal &&
-           RE::UI::GetSingleton()->GameIsPaused() == false && player->IsWeaponDrawn() == false;
+            ui->GameIsPaused() == false && 
+            player->IsWeaponDrawn() == false &&
+
+            // Holy wall of UIs with Menu Names \\
+
+            ui->IsMenuOpen(RE::BarterMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::BookMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::ConsoleNativeUIMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::ContainerMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::CraftingMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::CreationClubMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::CreditsMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::CursorMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::DialogueMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::FaderMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::FavoritesMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::GiftMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::HUDMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::JournalMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::KinectMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::LevelUpMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::LoadWaitSpinner::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::LockpickingMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::MagicMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::MainMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::MapMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::MistMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::ModManagerMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::RaceSexMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::SafeZoneMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::SleepWaitMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::StatsMenu::MENU_NAME) == false &&
+            //ui->IsMenuOpen(RE::TitleSequenceMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::TrainingMenu::MENU_NAME) == false &&
+            ui->IsMenuOpen(RE::TweenMenu::MENU_NAME) == false;
+            
+
+            // HUD and some stuff are still considered UI so these aren't viable
+            //ui->IsShowingMenus() == false;
+            //ui->menuStack.empty() == true;
 }
 
 
