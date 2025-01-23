@@ -1,4 +1,4 @@
-Scriptname SkyClimbMCM extends Ski_ConfigBase
+Scriptname SkyParkourMCM extends Ski_ConfigBase
 
 int climbKeyOption
 int useJumpKeyOption
@@ -53,7 +53,7 @@ event OnOptionKeyMapChange(int option, int keyCode, string conflictControl, stri
 			sc.ClimbKey = keyCode
 			sc.UnregisterForAllKeys()
 			sc.RegisterForKey(sc.ClimbKey)
-			SkyClimbPapyrus.RegisterClimbButton(sc.ClimbKey)
+			SkyParkourPapyrus.RegisterClimbButton(sc.ClimbKey)
 			SetKeyMapOptionValue(climbKeyOption, sc.ClimbKey)
 		endIf
 
@@ -63,16 +63,16 @@ endEvent
 event OnOptionSelect(int option)
 	if (option == useJumpKeyOption)
 		sc.UseJumpKey = !sc.UseJumpKey
-		sc.UpdateRefs()
+;		sc.UpdateRefs()
 		sc.UnregisterForAllKeys()
 		
 		if sc.UseJumpKey == false
-			SkyClimbPapyrus.ToggleJumping(true)
+			SkyParkourPapyrus.ToggleJumping(true)
 			sc.RegisterForKey(sc.ClimbKey)
-			SkyClimbPapyrus.RegisterClimbButton(sc.ClimbKey)
+			SkyParkourPapyrus.RegisterClimbButton(sc.ClimbKey)
 		else
 			sc.RegisterForKey(Input.GetMappedKey("Jump"))
-			SkyClimbPapyrus.RegisterClimbButton(Input.GetMappedKey("Jump"))
+			SkyParkourPapyrus.RegisterClimbButton(Input.GetMappedKey("Jump"))
 		endif
 		SetToggleOptionValue(option, sc.UseJumpKey)
 		
@@ -118,8 +118,8 @@ event OnOptionSliderAccept(int a_option, float a_value)
 	if (a_option == climbDelaySlider)
 		sc.ButtonDelay = a_value
 		SetSliderOptionValue(a_option, a_value, "{1}s")
-		SkyClimbPapyrus.RegisterClimbDelay(a_value)
+		SkyParkourPapyrus.RegisterClimbDelay(a_value)
 	endif
 endEvent
 
-SkyClimbQuestScript Property sc Auto
+SkyParkourQuestScript Property sc Auto

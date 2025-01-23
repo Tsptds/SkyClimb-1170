@@ -1,6 +1,6 @@
 Scriptname SkyParkourDamageStaminaScript extends activemagiceffect  
 
-SkyClimbQuestScript Property sc  Auto  
+SkyParkourQuestScript Property sc  Auto  
 
 Actor Property Player  Auto 
 float dmg
