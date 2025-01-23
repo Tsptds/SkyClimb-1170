@@ -619,21 +619,21 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, bool useJumpKey,
 
 bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 
-    vm->RegisterFunction("ToggleJumping", "SkyClimbPapyrus", ToggleJumping);
+    vm->RegisterFunction("ToggleJumping", "SkyParkourPapyrus", ToggleJumping);
 
-    vm->RegisterFunction("EndAnimationEarly", "SkyClimbPapyrus", EndAnimationEarly);
+    vm->RegisterFunction("EndAnimationEarly", "SkyParkourPapyrus", EndAnimationEarly);
 
-    vm->RegisterFunction("UpdateParkourPoint", "SkyClimbPapyrus", UpdateParkourPoint);
+    vm->RegisterFunction("UpdateParkourPoint", "SkyParkourPapyrus", UpdateParkourPoint);
 
-    vm->RegisterFunction("IsClimbKeyDown", "SkyClimbPapyrus", IsClimbKeyDown);
+    vm->RegisterFunction("IsClimbKeyDown", "SkyParkourPapyrus", IsClimbKeyDown);
 
-    vm->RegisterFunction("RegisterClimbButton", "SkyClimbPapyrus", RegisterClimbButton);
+    vm->RegisterFunction("RegisterClimbButton", "SkyParkourPapyrus", RegisterClimbButton);
 
-    vm->RegisterFunction("RegisterClimbDelay", "SkyClimbPapyrus", RegisterClimbDelay);
+    vm->RegisterFunction("RegisterClimbDelay", "SkyParkourPapyrus", RegisterClimbDelay);
 
-    vm->RegisterFunction("RegisterReferences", "SkyClimbPapyrus", RegisterReferences);
+    vm->RegisterFunction("RegisterReferences", "SkyParkourPapyrus", RegisterReferences);
 
-    vm->RegisterFunction("IsParkourActive", "SkyClimbPapyrus", IsParkourActive);
+    vm->RegisterFunction("IsParkourActive", "SkyParkourPapyrus", IsParkourActive);
 
     return true; 
 }
