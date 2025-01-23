@@ -43,7 +43,7 @@ namespace ButtonStates {
         
         auto it = xinputToCKMap.find(dxcode);
         if (it != xinputToCKMap.end()) {
-            logger::info("Alt. CK input found, mapping {}", it->second);
+            //logger::info("Alt. CK input found, mapping {}", it->second);
             return it->second;
         }
         return dxcode;  // Return default value if key not found
