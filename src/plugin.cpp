@@ -382,8 +382,8 @@ int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHe
 }
 
 
-int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLength, float maxElevationIncrease, float minVaultHeight, float maxVaultHeight) {
-
+int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLength, float maxElevationIncrease,
+               float minVaultHeight, float maxVaultHeight) {
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
@@ -391,56 +391,43 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
     float headHeight = 120 * PlayerScale;
 
-    RE::NiPoint3 fwdRayStart;
-    fwdRayStart.x = playerPos.x;
-    fwdRayStart.y = playerPos.y;
-    fwdRayStart.z = playerPos.z + headHeight;
-
+    // Forward raycast to check for a vaultable surface
+    RE::NiPoint3 fwdRayStart = playerPos + RE::NiPoint3(0, 0, headHeight);
     float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, RE::COL_LAYER::kLOS);
 
-    if (lastHitObject == RE::COL_LAYER::kTerrain) {
-        return -1;
+    if (lastHitObject == RE::COL_LAYER::kTerrain || fwdRayDist < vaultLength) {
+        return -1;  // Not vaultable if terrain or insufficient distance
     }
 
-    if (fwdRayDist < vaultLength) {
-        return -1;
-    }
-
-    // Backward ray to check if an object is blocking behind the vaultable surface
-    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 2) + RE::NiPoint3(0,0,5);  // Start the ray from the hit point with a z offset, and a starting offset
-
-    // Check for any object within a small distance behind the vaultable object
+    // Backward ray to check for obstructions behind the vaultable surface
+    RE::NiPoint3 backwardRayStart = fwdRayStart + checkDir * (fwdRayDist - 2) + RE::NiPoint3(0, 0, 5);
     float backwardRayDist = RayCast(backwardRayStart, checkDir, 50.0f, normalOut, RE::COL_LAYER::kLOS);
-    if (backwardRayDist < 50.0f && backwardRayDist > 0) {
-        // An object was found behind the vaultable surface, so cancel the vault
-        return -1;
+
+    if (backwardRayDist > 0 && backwardRayDist < 50.0f) {
+        return -1;  // Obstruction behind the vaultable surface
     }
 
-    int downIterations = (int)std::floor(vaultLength / 5.0f) /*24*/;       //Default 5.0f
-
+    // Downward raycast initialization
+    int downIterations = static_cast<int>(std::floor(vaultLength / 5.0f));
     RE::NiPoint3 downRayDir(0, 0, -1);
 
     bool foundVaulter = false;
-    float foundVaultHeight = -10000;
-
+    float foundVaultHeight = -10000.0f;
     bool foundLanding = false;
-    float foundLandingHeight = 10000;
+    float foundLandingHeight = 10000.0f;
 
+    // Incremental downward raycasts
     for (int i = 0; i < downIterations; i++) {
-
-        float iDist = (float)i * 5;
-        
+        float iDist = static_cast<float>(i) * 5.0f;
         RE::NiPoint3 downRayStart = playerPos + checkDir * iDist;
         downRayStart.z = fwdRayStart.z;
 
-
-        float downRayDist = RayCast(downRayStart, downRayDir, headHeight + 100, normalOut, RE::COL_LAYER::kLOS);
-
+        float downRayDist = RayCast(downRayStart, downRayDir, headHeight + 100.0f, normalOut, RE::COL_LAYER::kLOS);
         float hitHeight = (fwdRayStart.z - downRayDist) - playerPos.z;
 
+        // Check hit height for vaultable surfaces
         if (hitHeight > maxVaultHeight) {
-            return -1;
-
+            return -1;  // Too high to vault
         } else if (hitHeight > minVaultHeight && hitHeight < maxVaultHeight) {
             if (hitHeight >= foundVaultHeight) {
                 foundVaultHeight = hitHeight;
@@ -448,30 +435,23 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
             }
             ledgePoint = downRayStart + downRayDir * downRayDist;
             foundVaulter = true;
-        } 
-        else if (foundVaulter && hitHeight < minVaultHeight) {
-            if (hitHeight < foundLandingHeight || foundLanding == false) {
-                foundLandingHeight = hitHeight;
-            }
+        } else if (foundVaulter && hitHeight < minVaultHeight) {
             foundLandingHeight = std::min(hitHeight, foundLandingHeight);
             foundLanding = true;
         }
-        
-
     }
-     if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
+
+    // Final validation for vault
+    if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
-
-        if (!PlayerIsOnStairs())
-            //logger::info("Returned Vault");
-            return 3;
+        if (!PlayerIsOnStairs()) {
+            return 3;  // Vault successful
+        }
     }
 
-    return -1;
-
-
-
+    return -1;  // Vault failed
 }
+
 
 
 
@@ -509,7 +489,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *lowMarke
 
     // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 120, 70 * PlayerScale,
+        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 100, 70 * PlayerScale,
                                        static_cast<float>(std::min(40.5, 40.5 * PlayerScale)), 90 * PlayerScale);
         
     }
