@@ -3,7 +3,7 @@ bool logSwitch = false;
 
 
 namespace ButtonStates {
-    int32_t DXCODE = -1;
+    int32_t DXCODE = 0;
     bool isDown = false;
     float lastKeyDownTime = 0.0f;      // Track time of last valid press
     float debounceDelay = 0.0f;  // Set debounce delay
@@ -84,8 +84,8 @@ public:
                 auto dxScanCode = static_cast<int32_t>(buttonEvent->GetIDCode());  // DX Scan Code
                 //logger::info("DX code : {}, Input Type: {}", dxScanCode, buttonEvent->GetDevice());
                 
-                // Unless there's a valid key code, don't check for inputs (Happens when papyrus calls SkyClimbPapyrus.RegisterClimbButton)
-                if (ButtonStates::DXCODE == -1) return RE::BSEventNotifyControl::kContinue;
+                // Unless there's a valid key code, skip the mapping
+                if (ButtonStates::DXCODE == 0) continue;
 
                 // Convert Xinput codes to creation kit versions
                 if (buttonEvent->GetDevice() == RE::INPUT_DEVICE::kGamepad) {
@@ -112,7 +112,7 @@ public:
                         // if (logSwitch) logger::info("Holding Climb key, DX code : {}, Input Type: {}", dxScanCode, buttonEvent->GetDevice());
                     }
                     // if button is held down more than x seconds
-                    if (buttonEvent->IsPressed() || buttonEvent->IsDown()) {
+                    if (buttonEvent->IsPressed()) {
                         if (ButtonStates::lastKeyDownTime + ButtonStates::debounceDelay <=
                             buttonEvent->HeldDuration()) {
                             ButtonStates::isDown = true;

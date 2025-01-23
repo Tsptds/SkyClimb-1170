@@ -40,13 +40,13 @@ void ToggleJumpingInternal(bool enabled) {
 
 void ToggleJumping(RE::StaticFunctionTag *, bool enabled) { ToggleJumpingInternal(enabled); }
 
-void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
-   
-        if(!objectRef) logger::error("Null Player Ref Animation not ended early");
-        else
-            objectRef->NotifyAnimationGraph("IdleFurnitureExit");
-    
-}
+//void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
+//   
+//        if(!objectRef) logger::error("Null Player Ref Animation not ended early");
+//        else
+//            objectRef->NotifyAnimationGraph("IdleFurnitureExit");
+//    
+//}
 
 void RegisterClimbButton(RE::StaticFunctionTag *, int32_t dxcode) {
     
@@ -621,7 +621,7 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 
     vm->RegisterFunction("ToggleJumping", "SkyParkourPapyrus", ToggleJumping);
 
-    vm->RegisterFunction("EndAnimationEarly", "SkyParkourPapyrus", EndAnimationEarly);
+    //vm->RegisterFunction("EndAnimationEarly", "SkyParkourPapyrus", EndAnimationEarly);
 
     vm->RegisterFunction("UpdateParkourPoint", "SkyParkourPapyrus", UpdateParkourPoint);
 
