@@ -455,119 +455,89 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 
 
-int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *lowMarkerRef, RE::TESObjectREFR *medMarkerRef, 
-    RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, 
-    bool enableVaulting, bool enableLedges, float backwardOffset = 55.0f) {
-    
-    // Nullptr check
+int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *lowMarkerRef, RE::TESObjectREFR *medMarkerRef,
+                  RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool enableVaulting,
+                  bool enableLedges, float backwardOffset = 55.0f) {
+    // Nullptr check for all references
     if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !lowMarkerRef) {
         return -1;
     }
+
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
-    // Changed camera angle with player facing direction for 360 climbing
+    // Calculate player forward direction (normalized)
+    const float playerYaw = player->data.angle.z;  // Player's yaw
+    RE::NiPoint3 playerDirFlat{std::sin(playerYaw), std::cos(playerYaw), 0};
+    const float dirMagnitude = std::hypot(playerDirFlat.x, playerDirFlat.y);
+    playerDirFlat.x /= dirMagnitude;
+    playerDirFlat.y /= dirMagnitude;
 
-    // Get the player's yaw (Z rotation) in radians
-    float playerYaw = player->data.angle.z;  // Player's yaw angle
-
-    // Convert yaw to forward direction vector using sine and cosine
-    RE::NiPoint3 playerForwardDir;
-    playerForwardDir.x = std::sin(playerYaw);
-    playerForwardDir.y = std::cos(playerYaw);
-    playerForwardDir.z = 0;  // Player's forward vector is on the XY plane
-
-    // Normalize the player's direction vector
-    float playerDirTotal = magnitudeXY(playerForwardDir.x, playerForwardDir.y);
-    RE::NiPoint3 playerDirFlat;
-    playerDirFlat.x = playerForwardDir.x / playerDirTotal;
-    playerDirFlat.y = playerForwardDir.y / playerDirTotal;
-    playerDirFlat.z = 0;
-
+    // Perform ledge or vault checks
     int selectedLedgeType = -1;
     RE::NiPoint3 ledgePoint;
 
-    // Perform ledge check based on player direction
     if (enableVaulting) {
-        selectedLedgeType = VaultCheck(ledgePoint, playerDirFlat, 100, 70 * PlayerScale,
-                                       static_cast<float>(std::min(40.5, 40.5 * PlayerScale)), 90 * PlayerScale);
-        
+        selectedLedgeType =
+            VaultCheck(ledgePoint, playerDirFlat, 100, 70 * PlayerScale, 40.5f * PlayerScale, 90 * PlayerScale);
     }
-
     if (selectedLedgeType == -1 && enableLedges) {
         selectedLedgeType = LedgeCheck(ledgePoint, playerDirFlat, 40 * PlayerScale, 250 * PlayerScale);
-        
     }
-
-    if (selectedLedgeType == -1) {
+    if (selectedLedgeType == -1 || PlayerVsObjectAngle(ledgePoint) > 80) {
         return -1;
     }
 
-    // If player's direction is too far away from the ledge point
-    if (PlayerVsObjectAngle(ledgePoint) > 80) {
-        //logger::info("Player is too far away from ledge");
-        return -1;
-    }
-
-    // Rotate to face the player's forward direction
-    float zAngle = atan2(playerDirFlat.x, playerDirFlat.y);
-
-    // Move the indicator to the player position if needed
+    // Move indicator to the correct position
     if (indicatorRef->GetParentCell() != player->GetParentCell()) {
         indicatorRef->MoveTo(player->AsReference());
     }
 
-    // Position the indicator above the ledge point, with an offset backward
     RE::NiPoint3 backwardAdjustment = playerDirFlat * backwardOffset * PlayerScale;
-    indicatorRef->data.location = ledgePoint /*- backwardAdjustment */+ RE::NiPoint3(0, 0, 5);
+    indicatorRef->data.location = ledgePoint + RE::NiPoint3(0, 0, 5);  // Offset upwards slightly
     indicatorRef->Update3DPosition(true);
-    indicatorRef->data.angle = RE::NiPoint3(0, 0, zAngle);
+    indicatorRef->data.angle = RE::NiPoint3(0, 0, atan2(playerDirFlat.x, playerDirFlat.y));
 
-    RE::TESObjectREFR *ledgeMarker;
-    float zAdjust;
-    //zAdjust = ceil(playerPos.z - ledgePoint.z);
-
-    // ledge  grab
-    if (selectedLedgeType == 5) {
-        //logger::info("Selected Grab Ledge");
-        ledgeMarker = lowMarkerRef;
-        zAdjust = -80 * PlayerScale;
-        backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50 * PlayerScale;     // 50 is fine for this
-    }
-    // Select ledge type
-    else if (selectedLedgeType == 1) {
-        //logger::info("Selected Med Ledge");
-        ledgeMarker = medMarkerRef;
-        zAdjust = -155 * PlayerScale;
-    } else if (selectedLedgeType == 2) {
-        //logger::info("Selected High Ledge");
-        ledgeMarker = highMarkerRef;
-        zAdjust = -200 * PlayerScale;
-    } else {
-        //logger::info("Selected Vault");
-        ledgeMarker = vaultMarkerRef;
-        zAdjust = -60 * PlayerScale;  // default -60
+    // Select appropriate ledge marker and adjustments
+    RE::TESObjectREFR *ledgeMarker = nullptr;
+    float zAdjust = 0.0f;
+    switch (selectedLedgeType) {
+        case 5:  // Low ledge
+            ledgeMarker = lowMarkerRef;
+            zAdjust = -80 * PlayerScale;
+            backwardAdjustment = playerDirFlat * 50 * PlayerScale;  // Adjust backward offset
+            break;
+        case 1:  // Medium ledge
+            ledgeMarker = medMarkerRef;
+            zAdjust = -155 * PlayerScale;
+            break;
+        case 2:  // High ledge
+            ledgeMarker = highMarkerRef;
+            zAdjust = -200 * PlayerScale;
+            break;
+        default:  // Vault
+            ledgeMarker = vaultMarkerRef;
+            zAdjust = -60 * PlayerScale;
+            break;
     }
 
-
-    // Adjust the ledge marker for correct positioning, applying the backward offset
-    RE::NiPoint3 adjustedPos;
-    adjustedPos.x = ledgePoint.x + playerDirFlat.x - backwardAdjustment.x;
-    adjustedPos.y = ledgePoint.y + playerDirFlat.y - backwardAdjustment.y;
-    adjustedPos.z = ledgePoint.z + zAdjust;
-
-    if (!ledgeMarker) return -1;
+    // Ensure ledge marker is valid
+    if (!ledgeMarker) {
+        return -1;
+    }
 
     if (ledgeMarker->GetParentCell() != player->GetParentCell()) {
         ledgeMarker->MoveTo(player->AsReference());
     }
 
-    ledgeMarker->SetPosition(adjustedPos);
-    ledgeMarker->data.angle = RE::NiPoint3(0, 0, zAngle);
-    
+    // Position ledge marker with adjustments
+    ledgeMarker->SetPosition(
+        {ledgePoint.x - backwardAdjustment.x, ledgePoint.y - backwardAdjustment.y, ledgePoint.z + zAdjust});
+    ledgeMarker->data.angle = RE::NiPoint3(0, 0, atan2(playerDirFlat.x, playerDirFlat.y));
 
     return selectedLedgeType;
 }
+
 
 
 
