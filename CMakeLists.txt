@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-set(NAME "SkyClimb" CACHE STRING "")
+set(NAME "SkyParkour" CACHE STRING "")
 set(VERSION 1.2.0 CACHE STRING "")
 set(VR_VERSION 2)
 set(AE_VERSION 1)

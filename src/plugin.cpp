@@ -13,7 +13,7 @@ void SetupLog() {
     auto logsFolder = SKSE::log::log_directory();
     if (!logsFolder) SKSE::stl::report_and_fail("SKSE log_directory not provided, logs disabled.");
 
-    auto pluginName = "SkyClimb";
+    auto pluginName = "SkyParkour";
     auto logFilePath = *logsFolder / std::format("{}.log", pluginName);
     auto fileLoggerPtr = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true);
     auto loggerPtr = std::make_shared<spdlog::logger>("log", std::move(fileLoggerPtr));
@@ -24,52 +24,6 @@ void SetupLog() {
 
     spdlog::set_pattern("%v");
     //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
-}
-
-/*
-void SetupLog() {
-    auto logsFolder = SKSE::log::log_directory();
-    if (!logsFolder) SKSE::stl::report_and_fail("SKSE log_directory not provided, logs disabled.");
-    auto pluginName = SKSE::PluginDeclaration::GetSingleton()->GetName();
-    auto logFilePath = *logsFolder / std::format("{}.log", pluginName);
-    auto fileLoggerPtr = std::make_shared<spdlog::sinks::basic_file_sink_mt>(logFilePath.string(), true);
-    auto loggerPtr = std::make_shared<spdlog::logger>("log", std::move(fileLoggerPtr));
-    spdlog::set_default_logger(std::move(loggerPtr));
-    spdlog::set_level(spdlog::level::trace);
-    spdlog::flush_on(spdlog::level::trace);
-}
-*/
-
-/*
-struct OurEventSink : public RE::BSTEventSink<SKSE::CameraEvent> {
-    RE::BSEventNotifyControl ProcessEvent(const SKSE::CameraEvent* event, RE::BSTEventSource<SKSE::CameraEvent> *) {
-        
-        
-        RE::TESCameraState *furnitureState = RE::PlayerCamera::GetSingleton()->cameraStates[5].get();
-
-        if (event->newState->id == furnitureState->id) {
-            
-             RE::PlayerCamera::GetSingleton()->SetState(event->oldState);
-             logger::info("Camera state reverted");
-        }
-        
-        
-        return RE::BSEventNotifyControl::kContinue;
-
-
-
-    }
-};
-*/
-
-std::string SayHello(RE::StaticFunctionTag *) { 
-
-    return "Hello from SkyClimb 6!"; 
-}
-
-float getSign(float x) {
-    if (x < 0) return -1;
-    else return 1;
 }
 
 void ToggleJumpingInternal(bool enabled) {
@@ -109,150 +63,136 @@ bool IsParkourActive(RE::StaticFunctionTag *) {
     auto ui = RE::UI::GetSingleton();
     if (!player || !ui) return false;
 
-    //return playerRef.GetSleepState() == 0 && playerRef.GetSitState() == 0 && Utility.IsInMenuMode() == false && playerRef.IsWeaponDrawn() == false
-    return player->GetSitSleepState() == RE::SIT_SLEEP_STATE::kNormal &&
-            ui->GameIsPaused() == false && 
-            player->IsWeaponDrawn() == false &&
+    // Check player's state
+    if (player->GetSitSleepState() != RE::SIT_SLEEP_STATE::kNormal || player->IsWeaponDrawn()) {
+        return false;
+    }
 
-            // Holy wall of UIs with Menu Names \\
+    // Check if the game is paused
+    if (ui->GameIsPaused()) {
+        return false;
+    }
 
-            ui->IsMenuOpen(RE::BarterMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::BookMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::ConsoleNativeUIMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::ContainerMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::CraftingMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::CreationClubMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::CreditsMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::CursorMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::DialogueMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::FaderMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::FavoritesMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::GiftMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::HUDMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::InventoryMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::JournalMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::KinectMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::LevelUpMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::LoadWaitSpinner::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::LockpickingMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::MagicMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::MainMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::MapMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::MessageBoxMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::MistMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::ModManagerMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::RaceSexMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::SafeZoneMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::SleepWaitMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::StatsMenu::MENU_NAME) == false &&
-            //ui->IsMenuOpen(RE::TitleSequenceMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::TrainingMenu::MENU_NAME) == false &&
-            ui->IsMenuOpen(RE::TweenMenu::MENU_NAME) == false;
-            
+    // List of disqualifying menu names
+    const std::string_view excludedMenus[] = {RE::BarterMenu::MENU_NAME,       RE::ConsoleNativeUIMenu::MENU_NAME,
+                                   RE::ContainerMenu::MENU_NAME,    RE::CraftingMenu::MENU_NAME,
+                                   RE::CreationClubMenu::MENU_NAME, RE::DialogueMenu::MENU_NAME,
+                                   RE::FavoritesMenu::MENU_NAME,    RE::GiftMenu::MENU_NAME,
+                                   RE::InventoryMenu::MENU_NAME,    RE::JournalMenu::MENU_NAME,
+                                   RE::LevelUpMenu::MENU_NAME,      RE::LockpickingMenu::MENU_NAME,
+                                   RE::MagicMenu::MENU_NAME,        RE::MapMenu::MENU_NAME,
+                                   RE::MessageBoxMenu::MENU_NAME,   RE::MistMenu::MENU_NAME,
+                                   RE::RaceSexMenu::MENU_NAME,      RE::SleepWaitMenu::MENU_NAME,
+                                   RE::StatsMenu::MENU_NAME,        RE::TrainingMenu::MENU_NAME,
+                                   RE::TweenMenu::MENU_NAME};
 
-            // HUD and some stuff are still considered UI so these aren't viable, unfortunate
-            //ui->IsShowingMenus() == false;
-            //ui->menuStack.empty() == true;
+    // Check if any of the excluded menus are open
+    for (const std::string_view menuName : excludedMenus) {
+        if (ui->IsMenuOpen(menuName)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 
-float PlayerVsObjectAngle(RE::NiPoint3 objPoint) {
-    const auto player = RE::PlayerCharacter::GetSingleton();
 
-    // Get the vector from the player to the object
-    RE::NiPoint3 playerToObject =
-        objPoint - (player->GetPosition() + RE::NiPoint3(0, 0, 120));  // Adding some height to match head level
+float PlayerVsObjectAngle(const RE::NiPoint3 &objPoint) {
+    const auto player = RE::PlayerCharacter::GetSingleton();
+    if (!player) {
+        return 0.0f;  // Return a safe default if the player singleton is null
+    }
+
+    // Get the vector from the player's head to the object
+    RE::NiPoint3 playerToObject = objPoint - player->GetPosition();
+    playerToObject.z -= 120.0f;  // Adjust for head level
 
     // Normalize the vector
-    playerToObject /= playerToObject.Length();
+    const float distance = playerToObject.Length();
+    if (distance == 0.0f) {
+        return 0.0f;  // Avoid division by zero
+    }
+    playerToObject /= distance;
 
-    // Get the player's forward direction as a unit vector (based on player's yaw)
-    float playerYaw = player->data.angle.z;  // Get the player's yaw angle
-    RE::NiPoint3 playerForwardDir;
-    playerForwardDir.x = std::sin(playerYaw);
-    playerForwardDir.y = std::cos(playerYaw);
-    playerForwardDir.z = 0;  // We only care about the direction in the XY plane
+    // Get the player's forward direction in the XY plane
+    const float playerYaw = player->data.angle.z;
+    RE::NiPoint3 playerForwardDir{std::sin(playerYaw), std::cos(playerYaw), 0.0f};
 
-    // Normalize the player's forward direction
-    playerForwardDir /= playerForwardDir.Length();
+    // Dot product between player's forward direction and the object direction
+    const float dot = playerToObject.x * playerForwardDir.x + playerToObject.y * playerForwardDir.y;
 
-    // Calculate the dot product between the player's forward direction and the object direction
-    float dot = playerToObject.Dot(playerForwardDir);
+    // Clamp the dot product to avoid domain errors in acos
+    const float clampedDot = std::clamp(dot, -1.0f, 1.0f);
 
-    // Convert radians to degrees
-    const float radToDeg = 57.2958f;
-
-    // Calculate the angle between the two vectors
-    return acos(dot) * radToDeg;
+    // Calculate the angle in degrees
+    return std::acos(clampedDot) * 57.2958f;  // radToDeg constant
 }
+
 
 
 void LastObjectHitType(RE::COL_LAYER obj) { lastHitObject = obj; }
 
 
-float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut,/* bool logLayer,*/ RE::COL_LAYER layerMask) {
+float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut,
+              /* bool logLayer, */ RE::COL_LAYER layerMask) {
+    const auto player = RE::PlayerCharacter::GetSingleton();
+    if (!player) {
+        normalOut = RE::hkVector4(0.0f, 0.0f, 0.0f, 0.0f);
+        return maxDist;  // Return maxDist if player is null
+    }
 
-    RE::NiPoint3 rayEnd = rayStart + rayDir * maxDist;
-
-    const auto bhkWorld = RE::PlayerCharacter::GetSingleton()->GetParentCell()->GetbhkWorld();
+    const auto bhkWorld = player->GetParentCell()->GetbhkWorld();
     if (!bhkWorld) {
-        return maxDist;
+        normalOut = RE::hkVector4(0.0f, 0.0f, 0.0f, 0.0f);
+        return maxDist;  // Return maxDist if Havok world is unavailable
     }
 
     RE::bhkPickData pickData;
-
     const auto havokWorldScale = RE::bhkWorld::GetWorldScale();
 
+    // Set ray start and end points (scaled to Havok world)
     pickData.rayInput.from = rayStart * havokWorldScale;
-    pickData.rayInput.to = rayEnd * havokWorldScale;
-    //pickData.rayInput.enableShapeCollectionFilter = false;
-    //pickData.rayInput.filterInfo = RE::bhkCollisionFilter::GetSingleton()->GetNewSystemGroup() << 16 | SKSE::stl::to_underlying(layerMask);
-    
-    // Pass player collision to filter it out, ONLY PLAYER
-    const auto player = RE::PlayerCharacter::GetSingleton();
+    pickData.rayInput.to = (rayStart + rayDir * maxDist) * havokWorldScale;
+
+    // Set the collision filter info to exclude the player
     uint32_t collisionFilterInfo = 0;
     player->GetCollisionFilterInfo(collisionFilterInfo);
-    pickData.rayInput.filterInfo = (static_cast<uint32_t>(collisionFilterInfo >> 16) << 16) | static_cast<uint32_t>(layerMask);
+    pickData.rayInput.filterInfo = (collisionFilterInfo & 0xFFFF0000) | static_cast<uint32_t>(layerMask);
 
-    if (bhkWorld->PickObject(pickData); pickData.rayOutput.HasHit()) {
-
+    // Perform the raycast
+    if (bhkWorld->PickObject(pickData) && pickData.rayOutput.HasHit()) {
         normalOut = pickData.rayOutput.normal;
 
-        uint32_t layerIndex = pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F;
+        const uint32_t layerIndex = pickData.rayOutput.rootCollidable->broadPhaseHandle.collisionFilterInfo & 0x7F;
 
-        if (!layerIndex) {
-            return -1;
+        if (layerIndex == 0) {
+            return -1.0f;  // Invalid layer hit
         }
 
-        if (logLayer) logger::info("\nlayer hit: {}", layerIndex);
+        // Optionally log the layer hit
+        // if (logLayer) logger::info("\nLayer hit: {}", layerIndex);
 
-        //fail if hit a character
+        // Check for useful collision layers
         switch (static_cast<RE::COL_LAYER>(layerIndex)) {
             case RE::COL_LAYER::kStatic:
             case RE::COL_LAYER::kCollisionBox:
             case RE::COL_LAYER::kTerrain:
             case RE::COL_LAYER::kGround:
             case RE::COL_LAYER::kProps:
-            //case RE::COL_LAYER::kClutter:
-  
-                // update last hit collision object to check later
+                // Update last hit object type
                 LastObjectHitType(static_cast<RE::COL_LAYER>(layerIndex));
-                // hit something useful!
                 return maxDist * pickData.rayOutput.hitFraction;
 
-            default: {
-                return -1;
-
-            } break;
+            default:
+                return -1.0f;  // Ignore unwanted layers
         }
-
     }
 
-    if (logLayer) logger::info("nothing hit");
+    // No hit
+    normalOut = RE::hkVector4(0.0f, 0.0f, 0.0f, 0.0f);
+    // if (logLayer) logger::info("Nothing hit");
 
-    normalOut = RE::hkVector4(0, 0, 0, 0);
-
-    //didn't hit anything!
     return maxDist;
 }
 
@@ -265,190 +205,164 @@ float magnitudeXY(float x, float y) {
 
 
 bool PlayerIsGrounded() {
-
     const auto player = RE::PlayerCharacter::GetSingleton();
-    const auto playerPos = player->GetPosition();
-
-    RE::hkVector4 normalOut(0, 0, 0, 0);
-
-    // grounded check
-    float groundedCheckDist = 128 + 20;
-
-    if (const auto charController = player->GetCharController()) {
-        
-        if (charController->flags.any(RE::CHARACTER_FLAGS::kJumping)) {
-            return false;
-        }
-
-        RE::NiPoint3 groundedRayStart;
-        groundedRayStart.x = playerPos.x;
-        groundedRayStart.y = playerPos.y;
-        groundedRayStart.z = playerPos.z + 128;
-
-        RE::NiPoint3 groundedRayDir(0, 0, -1);
-
-        float groundedRayDist =
-            RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
-
-        if (groundedRayDist == groundedCheckDist || groundedRayDist == -1) {
-            return false;
-        }
+    if (!player) {
+        return false;  // Early exit if the player is null
     }
-    return true;
+
+    const auto charController = player->GetCharController();
+    if (!charController) {
+        return false;  // Early exit if the character controller is null
+    }
+
+    // Check if the player is in the air (jumping flag)
+    if (charController->flags.any(RE::CHARACTER_FLAGS::kJumping)) {
+        return false;
+    }
+
+    // Raycast parameters
+    const auto playerPos = player->GetPosition();
+    const RE::NiPoint3 groundedRayStart(playerPos.x, playerPos.y, playerPos.z + 128.0f);
+    const RE::NiPoint3 groundedRayDir(0.0f, 0.0f, -1.0f);
+    const float groundedCheckDist = 148.0f;  // 128 + 20
+
+    // Perform the raycast
+    RE::hkVector4 normalOut(0.0f, 0.0f, 0.0f, 0.0f);
+    float groundedRayDist =
+        RayCast(groundedRayStart, groundedRayDir, groundedCheckDist, normalOut, RE::COL_LAYER::kLOS);
+
+    // Check if the raycast hit the ground
+    return groundedRayDist != groundedCheckDist && groundedRayDist != -1.0f;
 }
+
 
 bool PlayerIsInWater() {
-    
     const auto player = RE::PlayerCharacter::GetSingleton();
+    if (!player) {
+        return false;  // Early exit if the player is null
+    }
+
+    const auto parentCell = player->GetParentCell();
+    if (!parentCell) {
+        return false;  // Early exit if the parent cell is null
+    }
+
+    // Get the player's current position
     const auto playerPos = player->GetPosition();
 
-    // temp water swimming fix
-    float waterLevel;
-    player->GetParentCell()->GetWaterHeight(playerPos, waterLevel);
-
-    if (playerPos.z - waterLevel < -50) {
-        return true;
+    // Retrieve the water level at the player's position
+    float waterLevel = 0.0f;
+    if (!parentCell->GetWaterHeight(playerPos, waterLevel)) {
+        return false;  // If water height cannot be determined, player is not in water
     }
 
-    return false;
+    // Check if the player's position is significantly below the water level
+    return (playerPos.z - waterLevel) < -50.0f;
 }
 
-bool PlayerIsOnStairs(){
+
+bool PlayerIsOnStairs() {
     const auto player = RE::PlayerCharacter::GetSingleton();
-    if (player) {
-        if (const auto charController = player->GetCharController()) {
-            return charController->flags.any(RE::CHARACTER_FLAGS::kOnStairs);
-        }
+    if (!player) {
+        return false;  // Early exit if the player is null
     }
 
-    return false;
+    const auto charController = player->GetCharController();
+    return charController && charController->flags.any(RE::CHARACTER_FLAGS::kOnStairs);
 }
+
 
 
 int LedgeCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float minLedgeHeight, float maxLedgeHeight) {
-
     const auto player = RE::PlayerCharacter::GetSingleton();
     const auto playerPos = player->GetPosition();
 
-    float startZOffset = 100 * PlayerScale;  // how high to start the raycast above the feet of the player
-    float playerHeight = 120 * PlayerScale;  // how much headroom is needed
-    float minUpCheck = 100 * PlayerScale;    // how low can the roof be relative to the raycast starting point?
-    float maxUpCheck = (maxLedgeHeight - startZOffset) + 20 * PlayerScale;  // how high do we even check for a roof?
-    float fwdCheck = 8 * PlayerScale; // how much each incremental forward check steps forward               // Default 8
-    int fwdCheckIterations = 15;  // how many incremental forward checks do we make?            // Default 15
-    float minLedgeFlatness = 0.5;  // 1 is perfectly flat, 0 is completely perpendicular        // Default 0.5
-    float ledgeHypotenus = 0.75; // This prevents lowest level grab from triggering on inclined surfaces, larger means less strict. Above 1 has no meaning, never set 0     // Default 0.75
+    // Constants adjusted for player scale
+    float startZOffset = 100 * PlayerScale;
+    float playerHeight = 120 * PlayerScale;
+    float minUpCheck = 100 * PlayerScale;
+    float maxUpCheck = (maxLedgeHeight - startZOffset) + 20 * PlayerScale;
+    float fwdCheckStep = 8 * PlayerScale;
+    int fwdCheckIterations = 15;
+    float minLedgeFlatness = 0.5;
+    float ledgeHypotenuse = 0.75;
 
     RE::hkVector4 normalOut(0, 0, 0, 0);
 
-    // raycast upwards to sky, making sure no roof is too low above us
-    RE::NiPoint3 upRayStart;
-    upRayStart.x = playerPos.x;
-    upRayStart.y = playerPos.y;
-    upRayStart.z = playerPos.z + startZOffset;
-
+    // Upward raycast to check for headroom
+    RE::NiPoint3 upRayStart = playerPos + RE::NiPoint3(0, 0, startZOffset);
     RE::NiPoint3 upRayDir(0, 0, 1);
 
-    float upRayDist = RayCast(upRayStart, upRayDir, maxUpCheck, normalOut,/* false,*/ RE::COL_LAYER::kLOS);
-
+    float upRayDist = RayCast(upRayStart, upRayDir, maxUpCheck, normalOut, RE::COL_LAYER::kLOS);
     if (upRayDist < minUpCheck) {
-        //logger::info("upRayDist {} < minUpCheck {}", upRayDist, minUpCheck);
         return -1;
     }
 
+    // Forward raycast initialization
     RE::NiPoint3 fwdRayStart = upRayStart + upRayDir * (upRayDist - 10);
-
-    RE::NiPoint3 downRayStart;
     RE::NiPoint3 downRayDir(0, 0, -1);
 
     bool foundLedge = false;
+    float normalZ = 0;
 
-    float normalZ=0;
-
-    // if nothing above, raycast forwards then down to find ledge
-    // incrementally step forward to find closest ledge in front
+    // Incremental forward raycast to find a ledge
     for (int i = 0; i < fwdCheckIterations; i++) {
-        // raycast forward
-
-        float fwdRayDist = RayCast(fwdRayStart, checkDir, fwdCheck * (float)i, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
-
-        if (fwdRayDist < fwdCheck * (float)i) {
-            //logger::info("fwdRayDist {} < fwdCheck {}", fwdRayDist, fwdCheck * (float)i);
+        float fwdRayDist = RayCast(fwdRayStart, checkDir, fwdCheckStep * i, normalOut, RE::COL_LAYER::kLOS);
+        if (fwdRayDist < fwdCheckStep * i) {
             continue;
         }
 
-        // if nothing forward, raycast back down
-
-        downRayStart = fwdRayStart + checkDir * fwdRayDist;
-
+        // Downward raycast to detect ledge point
+        RE::NiPoint3 downRayStart = fwdRayStart + checkDir * fwdRayDist;
         float downRayDist =
-            RayCast(downRayStart, downRayDir, startZOffset + maxUpCheck, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
+            RayCast(downRayStart, downRayDir, startZOffset + maxUpCheck, normalOut, RE::COL_LAYER::kLOS);
 
         ledgePoint = downRayStart + downRayDir * downRayDist;
+        normalZ = normalOut.quad.m128_f32[2];
 
-        /*float*/ normalZ = normalOut.quad.m128_f32[2];
-
-        // if found ledgePoint is too low/high, or the normal is too steep, or the ray hit oddly soon, skip and
-        // increment forward again
+        // Validate ledge based on height and flatness
         if (ledgePoint.z < playerPos.z + minLedgeHeight || ledgePoint.z > playerPos.z + maxLedgeHeight ||
             downRayDist < 10 || normalZ < minLedgeFlatness) {
-            //logger::info("{} {} {} {}", ledgePoint.z < playerPos.z + minLedgeHeight, ledgePoint.z > playerPos.z + maxLedgeHeight, downRayDist < 10, normalZ < minLedgeFlatness);
             continue;
-        } else {
-            foundLedge = true;
-            break;
         }
+
+        foundLedge = true;
+        break;
     }
 
-    // if no ledge found, return false
-    if (foundLedge == false) {
+    if (!foundLedge) {
         return -1;
     }
 
-    // make sure player can stand on top
-    float headroomBuffer = 10 * PlayerScale; // default 10
-
+    // Ensure there is sufficient headroom for the player to stand
+    float headroomBuffer = 10 * PlayerScale;
     RE::NiPoint3 headroomRayStart = ledgePoint + upRayDir * headroomBuffer;
-
-    float headroomRayDist = RayCast(headroomRayStart, upRayDir, playerHeight - headroomBuffer, normalOut, /*false,*/ RE::COL_LAYER::kLOS);
+    float headroomRayDist =
+        RayCast(headroomRayStart, upRayDir, playerHeight - headroomBuffer, normalOut, RE::COL_LAYER::kLOS);
 
     if (headroomRayDist < playerHeight - headroomBuffer) {
         return -1;
     }
+
     float ledgePlayerDiff = ledgePoint.z - playerPos.z;
 
-    if (logLayer) logger::info("**************\nLedge - player {}", ledgePlayerDiff);
-    if (logLayer) logger::info("Flatness {}", normalZ);
-
     if (ledgePlayerDiff > 175 * PlayerScale) {
-        //logger::info("Returned High Ledge");
-        //logger::info("Climbing High=> V:{}", ledgePlayerDiff);
-        return 2;
+        return 2;  // High ledge
     } else if (ledgePlayerDiff >= 120 * PlayerScale) {
-        //logger::info("Returned Med Ledge");
-        //logger::info("Climbing Med=> V:{}", ledgePlayerDiff);
-        return 1;
-        
+        return 1;  // Medium ledge
     } else {
-        
-        // Calculate horizontal and vertical distances
-        double horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
-        double verticalDistance = abs(ledgePoint.z - playerPos.z);
-        
-        // Check if horizontal distance is more than  vertical distance
-        if (!PlayerIsOnStairs()) { 
-            if (horizontalDistance < verticalDistance * ledgeHypotenus) {
-                //logger::info("Climbing Low=> H:{} V:{}", horizontalDistance, verticalDistance);
-                //logger::info("Returned low ledge");
-                return 5;
-            }
-            
-        }
+        // Additional horizontal and vertical checks for low ledge
+        float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
+        float verticalDistance = abs(ledgePlayerDiff);
 
+        if (!PlayerIsOnStairs() && horizontalDistance < verticalDistance * ledgeHypotenuse) {
+            return 5;  // Low ledge
+        }
     }
+
     return -1;
-   
 }
+
 
 int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLength, float maxElevationIncrease, float minVaultHeight, float maxVaultHeight) {
 
@@ -695,8 +609,7 @@ int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRe
 }
 
 
-bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) { 
-    vm->RegisterFunction("SayHello", "SkyClimbPapyrus", SayHello);
+bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 
     vm->RegisterFunction("ToggleJumping", "SkyClimbPapyrus", ToggleJumping);
 
@@ -718,7 +631,7 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
     SKSE::PluginVersionData v;
     v.PluginVersion({Version::MAJOR, Version::MINOR, Version::PATCH});
-    v.PluginName("SkyClimb");
+    v.PluginName("SkyParkour");
     v.AuthorName("Sokco & Tsptds");
     v.UsesAddressLibrary();
     v.UsesUpdatedStructs();
