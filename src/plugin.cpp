@@ -9,6 +9,14 @@ bool logLayer = false;
 
 float PlayerScale = 1.0f;
 
+namespace GameReferences {
+    RE::TESObjectREFR *vaultMarkerRef;
+    RE::TESObjectREFR *lowMarkerRef;
+    RE::TESObjectREFR *medMarkerRef;
+    RE::TESObjectREFR *highMarkerRef;
+    RE::TESObjectREFR *indicatorRef;
+}
+
 void SetupLog() {
     auto logsFolder = SKSE::log::log_directory();
     if (!logsFolder) SKSE::stl::report_and_fail("SKSE log_directory not provided, logs disabled.");
@@ -52,6 +60,16 @@ void RegisterClimbButton(RE::StaticFunctionTag *, int32_t dxcode) {
 void RegisterClimbDelay(RE::StaticFunctionTag*, float delay) {
     ButtonStates::debounceDelay = delay;
     logger::info("Delay Registered {}", ButtonStates::debounceDelay);
+}
+
+void RegisterReferences(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *lowMarkerRef, 
+    RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR* highMarkerRef, RE::TESObjectREFR* indicatorRef) {
+
+    GameReferences::vaultMarkerRef = vaultMarkerRef;
+    GameReferences::lowMarkerRef = lowMarkerRef;
+    GameReferences::medMarkerRef = medMarkerRef;
+    GameReferences::highMarkerRef = highMarkerRef;
+    GameReferences::indicatorRef = indicatorRef;
 }
 
 bool IsClimbKeyDown(RE::StaticFunctionTag *) {
@@ -380,7 +398,11 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
     float fwdRayDist = RayCast(fwdRayStart, checkDir, vaultLength, normalOut, RE::COL_LAYER::kLOS);
 
-    if (fwdRayDist < vaultLength || lastHitObject == RE::COL_LAYER::kTerrain) {
+    if (lastHitObject == RE::COL_LAYER::kTerrain) {
+        return -1;
+    }
+
+    if (fwdRayDist < vaultLength) {
         return -1;
     }
 
@@ -440,23 +462,9 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
      if (foundVaulter && foundLanding && foundLandingHeight < maxElevationIncrease) {
         ledgePoint.z = playerPos.z + foundVaultHeight;
 
-        
-        
-        //// Calculate horizontal and vertical distances
-        //float horizontalDistance = sqrt(pow(ledgePoint.x - playerPos.x, 2) + pow(ledgePoint.y - playerPos.y, 2));
-        //float verticalDistance = abs(ledgePoint.z - playerPos.z);
-
-        //// Check if horizontal distance is more than half of the vertical distance
-        //if (horizontalDistance > floor(verticalDistance /** 3 / 4*/)) {
-        //    //logger::info("Vault too far H:{} V:{}",horizontalDistance, verticalDistance);
-        //    return -1;  // Cancel climb if too far horizontally
-        //}
-        //logger::info("Vaulting=> H:{} V:{}", horizontalDistance, verticalDistance);
         if (!PlayerIsOnStairs())
             //logger::info("Returned Vault");
             return 3;
-        
-        
     }
 
     return -1;
@@ -467,12 +475,12 @@ int VaultCheck(RE::NiPoint3 &ledgePoint, RE::NiPoint3 checkDir, float vaultLengt
 
 
 
-int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef, RE::TESObjectREFR *highMarkerRef,
-                  RE::TESObjectREFR *indicatorRef, bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef,
-                  float backwardOffset = 55.0f) {
+int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *lowMarkerRef, RE::TESObjectREFR *medMarkerRef, 
+    RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, 
+    bool enableVaulting, bool enableLedges, float backwardOffset = 55.0f) {
     
     // Nullptr check
-    if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !grabMarkerRef) {
+    if (!indicatorRef || !vaultMarkerRef || !medMarkerRef || !highMarkerRef || !lowMarkerRef) {
         return -1;
     }
     const auto player = RE::PlayerCharacter::GetSingleton();
@@ -542,7 +550,7 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
     // ledge  grab
     if (selectedLedgeType == 5) {
         //logger::info("Selected Grab Ledge");
-        ledgeMarker = grabMarkerRef;
+        ledgeMarker = lowMarkerRef;
         zAdjust = -80 * PlayerScale;
         backwardAdjustment = playerDirFlat */*(backwardOffset-5)*/ 50 * PlayerScale;     // 50 is fine for this
     }
@@ -583,14 +591,14 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarke
 
 
 
-int UpdateParkourPoint(RE::StaticFunctionTag *, RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *medMarkerRef,
-                       RE::TESObjectREFR *highMarkerRef, RE::TESObjectREFR *indicatorRef, bool useJumpKey,
-                       bool enableVaulting, bool enableLedges, RE::TESObjectREFR *grabMarkerRef) {
+int UpdateParkourPoint(RE::StaticFunctionTag *, bool useJumpKey,
+                       bool enableVaulting, bool enableLedges) {
     
-   
     PlayerScale = GetScale();
 
-    int foundLedgeType = GetLedgePoint(vaultMarkerRef, medMarkerRef, highMarkerRef, indicatorRef, enableVaulting, enableLedges, grabMarkerRef);
+    using namespace GameReferences;
+    int foundLedgeType = GetLedgePoint(vaultMarkerRef, lowMarkerRef, medMarkerRef, highMarkerRef, indicatorRef,
+                                       enableVaulting, enableLedges);
     
 
     if (useJumpKey) {
@@ -622,6 +630,8 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
     vm->RegisterFunction("RegisterClimbButton", "SkyClimbPapyrus", RegisterClimbButton);
 
     vm->RegisterFunction("RegisterClimbDelay", "SkyClimbPapyrus", RegisterClimbDelay);
+
+    vm->RegisterFunction("RegisterReferences", "SkyClimbPapyrus", RegisterReferences);
 
     vm->RegisterFunction("IsParkourActive", "SkyClimbPapyrus", IsParkourActive);
 
