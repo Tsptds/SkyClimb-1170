@@ -662,7 +662,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface *a_s
     SetupLog();
 
     SKSE::Init(a_skse);
-    logger::info("Initializing SkyParkour");
+    logger::info("SkyParkour is Starting!");
     SKSE::GetPapyrusInterface()->Register(PapyrusFunctions); 
     SKSE::GetMessagingInterface()->RegisterListener(MessageEvent);
     
