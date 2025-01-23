@@ -153,7 +153,7 @@ void LastObjectHitType(RE::COL_LAYER obj) { lastHitObject = obj; }
 
 
 float RayCast(RE::NiPoint3 rayStart, RE::NiPoint3 rayDir, float maxDist, RE::hkVector4 &normalOut,
-              /* bool logLayer, */ RE::COL_LAYER layerMask) {
+              RE::COL_LAYER layerMask) {
     const auto player = RE::PlayerCharacter::GetSingleton();
     if (!player) {
         normalOut = RE::hkVector4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -541,30 +541,27 @@ int GetLedgePoint(RE::TESObjectREFR *vaultMarkerRef, RE::TESObjectREFR *lowMarke
 
 
 
-int UpdateParkourPoint(RE::StaticFunctionTag *, bool useJumpKey,
-                       bool enableVaulting, bool enableLedges) {
-    
+int UpdateParkourPoint(RE::StaticFunctionTag *, bool useJumpKey, bool enableVaulting, bool enableLedges) {
     PlayerScale = GetScale();
 
     using namespace GameReferences;
-    int foundLedgeType = GetLedgePoint(vaultMarkerRef, lowMarkerRef, medMarkerRef, highMarkerRef, indicatorRef,
-                                       enableVaulting, enableLedges);
-    
+    const int ledgePointType = GetLedgePoint(vaultMarkerRef, lowMarkerRef, medMarkerRef, highMarkerRef, indicatorRef,
+                                             enableVaulting, enableLedges);
 
-    if (useJumpKey) {
-        if (foundLedgeType >= 0) {
-            ToggleJumpingInternal(false);
-        } else {
-            ToggleJumpingInternal(true);
-        }
-    }
-    if (PlayerIsGrounded() == false || PlayerIsInWater() == true) {
-        ToggleJumpingInternal(true);    // Fix jump key getting stuck if next iteration returns -1 after jump key is disabled
-        //logger::info("Grounded {} In Water {}", PlayerIsGrounded(), PlayerIsInWater());
+    // If player is not grounded or is in water, reset jump key and return early
+    if (!PlayerIsGrounded() || PlayerIsInWater()) {
+        ToggleJumpingInternal(true);  // Ensure jump key is re-enabled to prevent being stuck
         return -1;
     }
-    return foundLedgeType;
+
+    // Handle jump key toggling based on ledge point type
+    if (useJumpKey) {
+        ToggleJumpingInternal(ledgePointType < 0);
+    }
+
+    return ledgePointType;
 }
+
 
 
 bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
