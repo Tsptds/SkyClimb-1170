@@ -1,6 +1,6 @@
 #include "ButtonListener.cpp"
 #include "Util.cpp"
-#include "References.h"
+#include "References.cpp"
 #include "Climb_Utility.cpp"
 #include "Climbing.cpp"
 
@@ -23,16 +23,6 @@ void SetupLog() {
     spdlog::set_pattern("%v");
     //spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] [%t] [%s:%#] %v");
 }
-
-
-
-//void EndAnimationEarly(RE::StaticFunctionTag *, RE::TESObjectREFR *objectRef) {
-//   
-//        if(!objectRef) logger::error("Null Player Ref Animation not ended early");
-//        else
-//            objectRef->NotifyAnimationGraph("IdleFurnitureExit");
-//    
-//}
 
 void RegisterClimbButton(RE::StaticFunctionTag *, int32_t dxcode) {
     
@@ -78,11 +68,7 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
 
     vm->RegisterFunction("ToggleJumping", "SkyParkourPapyrus", ToggleJumping);
 
-    //vm->RegisterFunction("EndAnimationEarly", "SkyParkourPapyrus", EndAnimationEarly);
-
     vm->RegisterFunction("UpdateParkourPoint", "SkyParkourPapyrus", UpdateParkourPoint);
-
-    //vm->RegisterFunction("IsClimbKeyDown", "SkyParkourPapyrus", IsClimbKeyDown);
 
     vm->RegisterFunction("RegisterClimbButton", "SkyParkourPapyrus", RegisterClimbButton);
 
@@ -91,8 +77,6 @@ bool PapyrusFunctions(RE::BSScript::IVirtualMachine * vm) {
     vm->RegisterFunction("RegisterStaminaDamage", "SkyParkourPapyrus", RegisterStaminaDamage);
 
     vm->RegisterFunction("RegisterReferences", "SkyParkourPapyrus", RegisterReferences);
-
-    /*vm->RegisterFunction("IsParkourActive", "SkyParkourPapyrus", IsParkourActive);*/
 
     return true; 
 }
