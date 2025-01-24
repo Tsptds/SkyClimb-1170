@@ -63,15 +63,14 @@ endEvent
 event OnOptionSelect(int option)
 	if (option == useJumpKeyOption)
 		sc.UseJumpKey = !sc.UseJumpKey
-;		sc.UpdateRefs()
 		sc.UnregisterForAllKeys()
 		
 		if sc.UseJumpKey == false
 			SkyParkourPapyrus.ToggleJumping(true)
-			sc.RegisterForKey(sc.ClimbKey)
+			;sc.RegisterForKey(sc.ClimbKey)
 			SkyParkourPapyrus.RegisterClimbButton(sc.ClimbKey)
 		else
-			sc.RegisterForKey(Input.GetMappedKey("Jump"))
+			;sc.RegisterForKey(Input.GetMappedKey("Jump"))
 			SkyParkourPapyrus.RegisterClimbButton(Input.GetMappedKey("Jump"))
 		endif
 		SetToggleOptionValue(option, sc.UseJumpKey)
@@ -86,6 +85,7 @@ event OnOptionSelect(int option)
 	elseif (option == useStaminaOption)
 		sc.ConsumeStamina = !sc.ConsumeStamina
 		SetToggleOptionValue(option, sc.ConsumeStamina)
+		SkyParkourPapyrus.RegisterStaminaDamage(sc.ConsumeStamina, sc.StaminaDamage)
 	endIf
 endEvent
 
@@ -113,6 +113,7 @@ event OnOptionSliderAccept(int a_option, float a_value)
 	if (a_option == staminaSlider)
 		sc.StaminaDamage = a_value
 		SetSliderOptionValue(a_option, a_value)
+		SkyParkourPapyrus.RegisterStaminaDamage(sc.ConsumeStamina, a_value)
 	endIf
 
 	if (a_option == climbDelaySlider)

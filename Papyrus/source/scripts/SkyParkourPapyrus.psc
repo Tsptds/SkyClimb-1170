@@ -1,19 +1,13 @@
 ScriptName SkyParkourPapyrus Hidden
 
-string function SayHello() global native
-
-function ToggleJumping(bool enabled) global native
-
-function EndAnimationEarly(ObjectReference objectRef) global native
-
 int function UpdateParkourPoint(bool useJumpKey, bool enableVaulting, bool enableLedges) global native
 
 function RegisterClimbButton(int DXScanCode) global native
 
 function RegisterClimbDelay(float delay) global native
 
-function RegisterReferences(ObjectReference vaultMarkerRef, ObjectReference lowMarkerRef, ObjectReference medMarkerRef, ObjectReference highMarkerRef, ObjectReference indicatorRef) global native
+function RegisterReferences(ObjectReference vaultMarkerRef, ObjectReference lowMarkerRef, ObjectReference medMarkerRef, ObjectReference highMarkerRef, ObjectReference vaultActivatorRef, ObjectReference lowActivatorRef, ObjectReference medActivatorRef, ObjectReference highActivatorRef, ObjectReference indicatorRef) global native
 
-bool function IsClimbKeyDown() global native
+function RegisterStaminaDamage(bool enabled, float Stamina_Damage) global native
 
-bool function IsParkourActive() global native
+function ToggleJumping(bool enabled) global native
