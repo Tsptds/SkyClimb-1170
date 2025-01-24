@@ -1,12 +1,14 @@
-
+#pragma once
+#include "References.h"
 bool logSwitch = false;
 
 
 namespace ButtonStates {
+    
+    float lastKeyDownTime = 0.0f;  // Track time of last valid press
+
     int32_t DXCODE = 0;
     bool isDown = false;
-    float lastKeyDownTime = 0.0f;      // Track time of last valid press
-    float debounceDelay = 0.0f;  // Set debounce delay
 
     std::unordered_map<int32_t, int32_t> xinputToCKMap = {
         // Mouse
@@ -113,7 +115,7 @@ public:
                     }
                     // if button is held down more than x seconds
                     if (buttonEvent->IsPressed()) {
-                        if (ButtonStates::lastKeyDownTime + ButtonStates::debounceDelay <=
+                        if (ButtonStates::lastKeyDownTime + ModSettings::climbDelay <=
                             buttonEvent->HeldDuration()) {
                             ButtonStates::isDown = true;
                             ButtonStates::lastKeyDownTime = buttonEvent->HeldDuration();  // Update time of last press
